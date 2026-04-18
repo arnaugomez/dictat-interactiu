@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
 import { FloatingDeco, Btn, ConfirmModal } from "../components/ui";
-import { DictatRepository } from "../data/repository";
+import { listDictats, deleteDictat } from "../api/dictats";
+import type { Dictat } from "../data/types";
 
 interface ListScreenProps {
   onBack: () => void;
@@ -13,14 +14,38 @@ interface ListScreenProps {
 }
 
 export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListScreenProps) {
-  const [dictats, setDictats] = useState(DictatRepository.getAll());
+  const [dictats, setDictats] = useState<Dictat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const confirmDelete = () => {
-    if (deleteId) {
-      DictatRepository.remove(deleteId);
-      setDictats(DictatRepository.getAll());
+
+  const fetchDictats = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { dictats: fetched } = await listDictats();
+      setDictats(fetched);
+    } catch {
+      setError("No s'han pogut carregar els dictats. Torna-ho a intentar.");
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    void fetchDictats();
+  }, [fetchDictats]);
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    const idToDelete = deleteId;
     setDeleteId(null);
+    try {
+      await deleteDictat(idToDelete);
+      await fetchDictats();
+    } catch {
+      setError("No s'ha pogut eliminar el dictat. Torna-ho a intentar.");
+    }
   };
 
   return (
@@ -79,7 +104,48 @@ export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListSc
             <I.plus size={16} /> Nou
           </Btn>
         </div>
-        {dictats.length === 0 ? (
+
+        {isLoading && (
+          <div
+            style={{
+              background: C.card,
+              borderRadius: 20,
+              boxShadow: C.shadow,
+              border: `1px solid ${C.borderLight}`,
+              padding: "48px 24px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontFamily: F.body, fontSize: 16, color: C.textLight, margin: 0 }}>
+              Carregant...
+            </p>
+          </div>
+        )}
+
+        {!isLoading && error && (
+          <div
+            style={{
+              background: `${C.error}12`,
+              borderRadius: 16,
+              border: `1px solid ${C.error}33`,
+              padding: "16px 20px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ fontFamily: F.body, fontSize: 14, color: C.error, margin: "0 0 10px" }}>
+              {error}
+            </p>
+            <Btn
+              variant="ghost"
+              onClick={fetchDictats}
+              style={{ fontSize: 13, padding: "6px 14px" }}
+            >
+              Reintentar
+            </Btn>
+          </div>
+        )}
+
+        {!isLoading && !error && dictats.length === 0 && (
           <div
             style={{
               background: C.card,
@@ -98,7 +164,9 @@ export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListSc
               Crea'n un des de la pàgina d'inici o prem "Nou".
             </p>
           </div>
-        ) : (
+        )}
+
+        {!isLoading && !error && dictats.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {dictats.map((d) => (
               <div

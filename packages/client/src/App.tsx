@@ -11,7 +11,7 @@ import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "./screens/ResetPasswordScreen";
 import AccountScreen from "./screens/AccountScreen";
 import { useAuth } from "./context/AuthContext";
-import { DictatRepository } from "./data/repository";
+import { createDictat, deleteDictat } from "./api/dictats";
 import { tokenize, computeHiddenIndices } from "./utils/tokenizer";
 import { C } from "./theme/colors";
 import { F } from "./theme/fonts";
@@ -109,19 +109,18 @@ export default function App() {
     list: () => navigate("/list"),
     edit: (id: string) => navigate(`/edit/${id}`),
     practice: (id: string) => navigate(`/practice/${id}`),
-    createFromText: (text: string) => {
-      const d = DictatRepository.createNew(text);
-      d.hiddenIndices = computeHiddenIndices(tokenize(text), d.config.hidePct);
-      DictatRepository.save(d);
-      navigate(`/edit/${d.id}`);
+    createFromText: async (text: string) => {
+      const tokens = tokenize(text);
+      const hiddenIndices = computeHiddenIndices(tokens, 100);
+      const { dictat } = await createDictat({ text, hiddenIndices });
+      navigate(`/edit/${dictat.id}`);
     },
-    createNew: () => {
-      const d = DictatRepository.createNew();
-      DictatRepository.save(d);
-      navigate(`/edit/${d.id}`);
+    createNew: async () => {
+      const { dictat } = await createDictat({ text: "" });
+      navigate(`/edit/${dictat.id}`);
     },
-    deleteDictat: (id: string) => {
-      DictatRepository.remove(id);
+    deleteDictat: async (id: string) => {
+      await deleteDictat(id);
       navigate("/list");
     },
   };

@@ -1,22 +1,6 @@
 import type { Token } from "./tokenizer";
 import { toUpper } from "./tokenizer";
-
-interface DictatConfig {
-  lletraPal: boolean;
-  fontSize: number;
-  hidePct: number;
-  fontType: "impremta" | "lligada";
-}
-
-interface Dictat {
-  id: string;
-  title: string;
-  text: string;
-  config: DictatConfig;
-  hiddenIndices: number[];
-  createdAt: number;
-  updatedAt: number;
-}
+import type { Dictat } from "../data/types";
 
 export function doPrint(
   dictat: Dictat,

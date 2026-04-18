@@ -1,39 +1,11 @@
-const API_BASE = "/api";
-
-interface RequestOptions {
-  method?: string;
-  body?: unknown;
-  headers?: Record<string, string>;
-}
-
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, headers = {} } = options;
-
-  const fetchOptions: RequestInit = {
-    method,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-  };
-
-  if (body !== undefined) {
-    fetchOptions.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, fetchOptions);
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({
-      error: "NetworkError",
-      message: response.statusText,
-    }));
-    throw new ApiError(response.status, errorBody.error, errorBody.message);
-  }
-
-  return response.json();
-}
+import { Effect, Layer } from "effect";
+import {
+  HttpClient,
+  HttpClientResponse,
+  HttpBody,
+  FetchHttpClient,
+  HttpClientRequest,
+} from "effect/unstable/http";
 
 export class ApiError extends Error {
   constructor(
@@ -46,9 +18,57 @@ export class ApiError extends Error {
   }
 }
 
+// Configure fetch with credentials
+const FetchLayer = Layer.succeed(FetchHttpClient.RequestInit, {
+  credentials: "include",
+} as RequestInit);
+
+// Configure client to prepend /api to all URLs
+const ApiClientLayer = Layer.effect(
+  HttpClient.HttpClient,
+  Effect.gen(function* () {
+    const baseClient = yield* HttpClient.HttpClient;
+    return baseClient.pipe(HttpClient.mapRequest(HttpClientRequest.prependUrl("/api")));
+  }),
+);
+
+const ClientLive = ApiClientLayer.pipe(
+  Layer.provide(FetchLayer),
+  Layer.provide(FetchHttpClient.layer),
+);
+
+function runApiEffect<T>(
+  effect: Effect.Effect<HttpClientResponse.HttpClientResponse, unknown, HttpClient.HttpClient>,
+): Promise<T> {
+  return effect.pipe(
+    Effect.flatMap((response) => {
+      if (response.status >= 400) {
+        return Effect.flatMap(response.json, (body) => {
+          const err = body as { error?: string; message?: string };
+          return Effect.fail(
+            new ApiError(response.status, err?.error ?? "Error", err?.message ?? "Request failed"),
+          );
+        });
+      }
+      return response.json as Effect.Effect<T>;
+    }),
+    Effect.provide(ClientLive),
+    Effect.runPromise,
+  );
+}
+
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body?: unknown) => request<T>(path, { method: "POST", body }),
-  put: <T>(path: string, body?: unknown) => request<T>(path, { method: "PUT", body }),
-  del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  get: <T>(path: string): Promise<T> => runApiEffect<T>(HttpClient.get(path)),
+
+  post: <T>(path: string, body?: unknown): Promise<T> =>
+    runApiEffect<T>(
+      HttpClient.post(path, body !== undefined ? { body: HttpBody.jsonUnsafe(body) } : undefined),
+    ),
+
+  put: <T>(path: string, body?: unknown): Promise<T> =>
+    runApiEffect<T>(
+      HttpClient.put(path, body !== undefined ? { body: HttpBody.jsonUnsafe(body) } : undefined),
+    ),
+
+  del: <T>(path: string): Promise<T> => runApiEffect<T>(HttpClient.del(path)),
 };

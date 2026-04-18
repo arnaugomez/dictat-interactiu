@@ -4,27 +4,11 @@ import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
 import { FloatingDeco, Btn, Toggle, ConfirmModal, Toast, Dropdown } from "../components/ui";
 import TokenRenderer from "../components/TokenRenderer";
-import { DictatRepository, defaultTitle } from "../data/repository";
+import { getDictat, updateDictat } from "../api/dictats";
+import type { Dictat, DictatConfig } from "../data/types";
 import { randomExample } from "../data/examples";
 import { tokenize, computeHiddenIndices } from "../utils/tokenizer";
 import { doPrint } from "../utils/print";
-
-interface DictatConfig {
-  lletraPal: boolean;
-  fontSize: number;
-  hidePct: number;
-  fontType: "impremta" | "lligada";
-}
-
-interface Dictat {
-  id: string;
-  title: string;
-  text: string;
-  config: DictatConfig;
-  hiddenIndices: number[];
-  createdAt: number;
-  updatedAt: number;
-}
 
 interface EditScreenProps {
   dictatId: string;
@@ -34,93 +18,168 @@ interface EditScreenProps {
 }
 
 export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: EditScreenProps) {
-  const [dictat, setDictat] = useState<Dictat>(() => {
-    const d = DictatRepository.getById(dictatId) || DictatRepository.createNew();
-    if (!d.title) {
-      d.title = defaultTitle();
-    }
-    if (!d.hiddenIndices || (d.text && d.hiddenIndices.length === 0)) {
-      d.hiddenIndices = computeHiddenIndices(tokenize(d.text), d.config.hidePct || 100);
-    }
-    if (!d.config.fontType) d.config.fontType = "impremta";
-    DictatRepository.save(d);
-    return d;
-  });
+  const [dictat, setDictat] = useState<Dictat | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [sliderPct, setSliderPct] = useState(dictat.config.hidePct || 100);
+  const [sliderPct, setSliderPct] = useState(100);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(dictat.title);
+  const [titleDraft, setTitleDraft] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const tokens = useMemo(() => tokenize(dictat.text), [dictat.text]);
-  const hiddenSet = useMemo(() => new Set(dictat.hiddenIndices || []), [dictat.hiddenIndices]);
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    getDictat(dictatId)
+      .then(({ dictat: fetched }) => {
+        setDictat(fetched);
+        setSliderPct(fetched.config.hidePct || 100);
+        setTitleDraft(fetched.title);
+      })
+      .catch(() => {
+        setError("No s'ha pogut carregar el dictat.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [dictatId]);
 
-  const save = useCallback((patch: Partial<Dictat>) => {
-    setDictat((p) => {
-      const n = { ...p, ...patch };
-      DictatRepository.save(n);
-      return n;
-    });
-  }, []);
-  const saveCfg = useCallback((patch: Partial<DictatConfig>) => {
-    setDictat((p) => {
-      const n = { ...p, config: { ...p.config, ...patch } };
-      DictatRepository.save(n);
-      return n;
-    });
-  }, []);
+  const debouncedSave = useCallback(
+    (patch: { title?: string; text?: string; config?: DictatConfig; hiddenIndices?: number[] }) => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        void updateDictat(dictatId, patch);
+      }, 500);
+    },
+    [dictatId],
+  );
+
+  const save = useCallback(
+    (patch: Partial<Pick<Dictat, "title" | "text" | "hiddenIndices">>) => {
+      setDictat((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, ...patch };
+        debouncedSave(patch);
+        return next;
+      });
+    },
+    [debouncedSave],
+  );
+
+  const saveCfg = useCallback(
+    (patch: Partial<DictatConfig>) => {
+      setDictat((prev) => {
+        if (!prev) return prev;
+        const config = { ...prev.config, ...patch };
+        debouncedSave({ config });
+        return { ...prev, config };
+      });
+    },
+    [debouncedSave],
+  );
+
+  const tokens = useMemo(() => tokenize(dictat?.text ?? ""), [dictat?.text]);
+  const hiddenSet = useMemo(() => new Set(dictat?.hiddenIndices ?? []), [dictat?.hiddenIndices]);
 
   const handleTextChange = useCallback(
     (t: string) => {
       const toks = tokenize(t);
-      const hi = computeHiddenIndices(toks, dictat.config.hidePct || 100);
+      const hi = computeHiddenIndices(toks, dictat?.config.hidePct ?? 100);
       save({ text: t, hiddenIndices: hi });
     },
-    [dictat.config.hidePct, save],
+    [dictat?.config.hidePct, save],
   );
 
   const commitHidePct = useCallback(
     (pct: number) => {
       const hi = computeHiddenIndices(tokens, pct);
-      setDictat((p) => {
-        const n = { ...p, config: { ...p.config, hidePct: pct }, hiddenIndices: hi };
-        DictatRepository.save(n);
-        return n;
+      setDictat((prev) => {
+        if (!prev) return prev;
+        const config = { ...prev.config, hidePct: pct };
+        debouncedSave({ config, hiddenIndices: hi });
+        return { ...prev, config, hiddenIndices: hi };
       });
     },
-    [tokens],
+    [tokens, debouncedSave],
   );
 
-  const toggleWord = useCallback((i: number) => {
-    setDictat((p) => {
-      const s = new Set(p.hiddenIndices || []);
-      if (s.has(i)) {
-        s.delete(i);
-      } else {
-        s.add(i);
-      }
-      const n = { ...p, hiddenIndices: [...s].sort((a, b) => a - b) };
-      DictatRepository.save(n);
-      return n;
-    });
-  }, []);
+  const toggleWord = useCallback(
+    (i: number) => {
+      setDictat((prev) => {
+        if (!prev) return prev;
+        const s = new Set(prev.hiddenIndices ?? []);
+        if (s.has(i)) {
+          s.delete(i);
+        } else {
+          s.add(i);
+        }
+        const hiddenIndices = [...s].sort((a, b) => a - b);
+        debouncedSave({ hiddenIndices });
+        return { ...prev, hiddenIndices };
+      });
+    },
+    [debouncedSave],
+  );
 
   const fillExample = () => {
     const t = randomExample();
     handleTextChange(t);
     textRef.current?.focus();
   };
+
   const commitTitle = () => {
-    save({ title: titleDraft.trim() || defaultTitle() });
+    if (!dictat) return;
+    const title = titleDraft.trim() || dictat.title;
+    save({ title });
     setEditingTitle(false);
   };
 
   useEffect(() => {
     if (editingTitle && titleRef.current) titleRef.current.focus();
   }, [editingTitle]);
+
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.bg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ fontFamily: F.display, fontSize: 20, color: C.textLight }}>Carregant...</div>
+      </div>
+    );
+  }
+
+  if (error || !dictat) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.bg,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+        }}
+      >
+        <div style={{ fontFamily: F.body, fontSize: 16, color: C.error }}>
+          {error ?? "Dictat no trobat."}
+        </div>
+        <Btn variant="ghost" onClick={onBack} style={{ padding: "8px 14px", fontSize: 13 }}>
+          <I.back size={18} /> Tornar
+        </Btn>
+      </div>
+    );
+  }
 
   const cfg = dictat.config;
   const wc = tokens.filter((t) => t.type === "word").length;

@@ -4,25 +4,9 @@ import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
 import { FloatingDeco, Btn } from "../components/ui";
 import TokenRenderer from "../components/TokenRenderer";
-import { DictatRepository } from "../data/repository";
+import { getDictat } from "../api/dictats";
+import type { Dictat } from "../data/types";
 import { tokenize, toUpper } from "../utils/tokenizer";
-
-interface DictatConfig {
-  lletraPal: boolean;
-  fontSize: number;
-  hidePct: number;
-  fontType: "impremta" | "lligada";
-}
-
-interface Dictat {
-  id: string;
-  title: string;
-  text: string;
-  config: DictatConfig;
-  hiddenIndices: number[];
-  createdAt: number;
-  updatedAt: number;
-}
 
 interface CheckResults {
   correct: number;
@@ -36,32 +20,49 @@ interface PracticeScreenProps {
 }
 
 export default function PracticeScreen({ dictatId, onBack }: PracticeScreenProps) {
-  const dictat = useMemo<Dictat | null>(
-    () => DictatRepository.getById(dictatId) ?? null,
-    [dictatId],
-  );
-  const [fontSize, setFontSize] = useState(dictat?.config?.fontSize ?? 22);
+  const [dictat, setDictat] = useState<Dictat | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [fontSize, setFontSize] = useState(22);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [results, setResults] = useState<CheckResults | null>(null);
   const [showCorrections, setShowCorrections] = useState(false);
   const inputRefs = useRef<Record<number, HTMLInputElement>>({});
 
-  const tokens = useMemo(() => tokenize(dictat?.text || ""), [dictat]);
-  const hiddenSet = useMemo(() => new Set(dictat?.hiddenIndices || []), [dictat]);
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    getDictat(dictatId)
+      .then(({ dictat: fetched }) => {
+        setDictat(fetched);
+        setFontSize(fetched.config?.fontSize ?? 22);
+      })
+      .catch(() => {
+        setError("No s'ha pogut carregar el dictat.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [dictatId]);
+
+  const tokens = useMemo(() => tokenize(dictat?.text ?? ""), [dictat]);
+  const hiddenSet = useMemo(() => new Set(dictat?.hiddenIndices ?? []), [dictat]);
   const hiddenOrder = useMemo(
     () =>
       tokens.map((t, i) => (t.type === "word" && hiddenSet.has(i) ? i : -1)).filter((i) => i >= 0),
     [tokens, hiddenSet],
   );
   const ll = dictat?.config?.lletraPal ?? false;
-  const ft = dictat?.config?.fontType || "impremta";
+  const ft = dictat?.config?.fontType ?? "impremta";
 
   useEffect(() => {
-    setTimeout(() => {
-      if (hiddenOrder.length > 0 && inputRefs.current[hiddenOrder[0]])
-        inputRefs.current[hiddenOrder[0]].focus();
-    }, 100);
-  }, []);
+    if (!isLoading && dictat) {
+      setTimeout(() => {
+        if (hiddenOrder.length > 0 && inputRefs.current[hiddenOrder[0]])
+          inputRefs.current[hiddenOrder[0]].focus();
+      }, 100);
+    }
+  }, [isLoading, dictat, hiddenOrder]);
 
   const checkResults = () => {
     if (!dictat) return;
@@ -77,6 +78,45 @@ export default function PracticeScreen({ dictatId, onBack }: PracticeScreenProps
     setShowCorrections(false);
   };
 
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.bg,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ fontFamily: F.display, fontSize: 20, color: C.textLight }}>Carregant...</div>
+      </div>
+    );
+  }
+
+  if (error || !dictat) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.bg,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
+        }}
+      >
+        <div style={{ fontFamily: F.body, fontSize: 16, color: C.error }}>
+          {error ?? "Dictat no trobat."}
+        </div>
+        <Btn variant="ghost" onClick={onBack} style={{ padding: "8px 14px", fontSize: 13 }}>
+          <I.back size={18} /> Tornar
+        </Btn>
+      </div>
+    );
+  }
+
   const scoreEmoji = results
     ? results.correct === results.total
       ? "🎉"
@@ -91,10 +131,6 @@ export default function PracticeScreen({ dictatId, onBack }: PracticeScreenProps
         ? C.secondary
         : C.primary
     : C.text;
-  if (!dictat)
-    return (
-      <div style={{ padding: 40, textAlign: "center", fontFamily: F.body }}>Dictat no trobat.</div>
-    );
 
   return (
     <div

@@ -1,5 +1,5 @@
 import { api } from "./client";
-import type { Dictat, DictatConfig } from "../data/repository";
+import type { Dictat, DictatConfig } from "../data/types";
 
 interface DictatsListResponse {
   dictats: Dictat[];
