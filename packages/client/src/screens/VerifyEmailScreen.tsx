@@ -3,7 +3,7 @@ import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { FloatingDeco, Btn } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
-import { resendVerification } from "../api/auth";
+import { resendVerification, verifyEmail } from "../api/auth";
 
 interface VerifyEmailScreenProps {
   onLogout: () => void;
@@ -12,11 +12,24 @@ interface VerifyEmailScreenProps {
 const COOLDOWN_SECONDS = 60;
 
 export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [cooldown, setCooldown] = useState(0);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+
+  // Auto-verify if token is in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (!token) return;
+    setVerifying(true);
+    verifyEmail({ token })
+      .then(() => refreshUser())
+      .catch(() => setSendError("El token de verificació no és vàlid o ha caducat."))
+      .finally(() => setVerifying(false));
+  }, [refreshUser]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -98,19 +111,33 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
             textAlign: "center",
           }}
         >
-          <p
-            style={{
-              fontFamily: F.body,
-              fontSize: 16,
-              color: C.textLight,
-              margin: 0,
-              lineHeight: 1.6,
-            }}
-          >
-            Hem enviat un correu de verificació a{" "}
-            <strong style={{ color: C.text }}>{user ? user.email : ""}</strong>. Revisa la bústia
-            d'entrada.
-          </p>
+          {verifying ? (
+            <p
+              style={{
+                fontFamily: F.body,
+                fontSize: 16,
+                color: C.primary,
+                margin: 0,
+                lineHeight: 1.6,
+              }}
+            >
+              Verificant el correu...
+            </p>
+          ) : (
+            <p
+              style={{
+                fontFamily: F.body,
+                fontSize: 16,
+                color: C.textLight,
+                margin: 0,
+                lineHeight: 1.6,
+              }}
+            >
+              Hem enviat un correu de verificació a{" "}
+              <strong style={{ color: C.text }}>{user ? user.email : ""}</strong>. Revisa la bústia
+              d'entrada.
+            </p>
+          )}
 
           {sendSuccess && (
             <div
