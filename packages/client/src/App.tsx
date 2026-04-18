@@ -7,10 +7,22 @@ import PracticeScreen from "./screens/PracticeScreen";
 import { DictatRepository } from "./data/repository";
 import { tokenize, computeHiddenIndices } from "./utils/tokenizer";
 
+type Screen = "home" | "list" | "edit" | "practice";
+
+interface Nav {
+  home: () => void;
+  list: () => void;
+  edit: (id: string) => void;
+  practice: (id: string) => void;
+  createFromText: (text: string) => void;
+  createNew: () => void;
+  deleteDictat: (id: string) => void;
+}
+
 export default function App() {
-  const [screen, setScreen] = useState("home");
-  const [activeId, setActiveId] = useState(null);
-  const nav = {
+  const [screen, setScreen] = useState<Screen>("home");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const nav: Nav = {
     home: () => {
       setScreen("home");
       setActiveId(null);
@@ -19,15 +31,15 @@ export default function App() {
       setScreen("list");
       setActiveId(null);
     },
-    edit: (id) => {
+    edit: (id: string) => {
       setActiveId(id);
       setScreen("edit");
     },
-    practice: (id) => {
+    practice: (id: string) => {
       setActiveId(id);
       setScreen("practice");
     },
-    createFromText: (text) => {
+    createFromText: (text: string) => {
       const d = DictatRepository.createNew(text);
       d.hiddenIndices = computeHiddenIndices(tokenize(text), d.config.hidePct);
       DictatRepository.save(d);
@@ -40,7 +52,7 @@ export default function App() {
       setActiveId(d.id);
       setScreen("edit");
     },
-    deleteDictat: (id) => {
+    deleteDictat: (id: string) => {
       DictatRepository.remove(id);
       setActiveId(null);
       setScreen("list");
@@ -60,7 +72,7 @@ export default function App() {
           onNew={nav.createNew}
         />
       )}
-      {screen === "edit" && (
+      {screen === "edit" && activeId !== null && (
         <EditScreen
           key={activeId}
           dictatId={activeId}
@@ -69,7 +81,7 @@ export default function App() {
           onDelete={nav.deleteDictat}
         />
       )}
-      {screen === "practice" && (
+      {screen === "practice" && activeId !== null && (
         <PracticeScreen
           key={activeId + "_p"}
           dictatId={activeId}

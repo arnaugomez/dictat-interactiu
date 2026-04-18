@@ -1,4 +1,4 @@
-export const EXAMPLES = [
+export const EXAMPLES: string[] = [
   "El gat juga al jardí.\nLa nena menja una poma vermella.\nEl sol brilla molt avui.",
   "La lluna surt de nit.\nEls estels fan llum al cel.\nEl vent mou les fulles dels arbres.",
   "El peix neda al riu.\nLa granota salta sobre la pedra.\nEl bosc està ple de vida.",
@@ -11,4 +11,5 @@ export const EXAMPLES = [
   "El pa és calent i bo.\nLa sopa té verdures fresques.\nDinem junts a la taula.",
 ];
 
-export const randomExample = () => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)];
+export const randomExample = (): string =>
+  EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)] ?? EXAMPLES[0];

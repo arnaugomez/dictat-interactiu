@@ -9,8 +9,32 @@ import { randomExample } from "../data/examples";
 import { tokenize, computeHiddenIndices } from "../utils/tokenizer";
 import { doPrint } from "../utils/print";
 
-export default function EditScreen({ dictatId, onBack, onPractice, onDelete }) {
-  const [dictat, setDictat] = useState(() => {
+interface DictatConfig {
+  lletraPal: boolean;
+  fontSize: number;
+  hidePct: number;
+  fontType: "impremta" | "lligada";
+}
+
+interface Dictat {
+  id: string;
+  title: string;
+  text: string;
+  config: DictatConfig;
+  hiddenIndices: number[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface EditScreenProps {
+  dictatId: string;
+  onBack: () => void;
+  onPractice: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: EditScreenProps) {
+  const [dictat, setDictat] = useState<Dictat>(() => {
     const d = DictatRepository.getById(dictatId) || DictatRepository.createNew();
     if (!d.title) {
       d.title = defaultTitle();
@@ -27,21 +51,21 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }) {
   const [sliderPct, setSliderPct] = useState(dictat.config.hidePct || 100);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(dictat.title);
-  const [toast, setToast] = useState(null);
-  const textRef = useRef(null);
-  const titleRef = useRef(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const tokens = useMemo(() => tokenize(dictat.text), [dictat.text]);
   const hiddenSet = useMemo(() => new Set(dictat.hiddenIndices || []), [dictat.hiddenIndices]);
 
-  const save = useCallback((patch) => {
+  const save = useCallback((patch: Partial<Dictat>) => {
     setDictat((p) => {
       const n = { ...p, ...patch };
       DictatRepository.save(n);
       return n;
     });
   }, []);
-  const saveCfg = useCallback((patch) => {
+  const saveCfg = useCallback((patch: Partial<DictatConfig>) => {
     setDictat((p) => {
       const n = { ...p, config: { ...p.config, ...patch } };
       DictatRepository.save(n);
@@ -50,7 +74,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }) {
   }, []);
 
   const handleTextChange = useCallback(
-    (t) => {
+    (t: string) => {
       const toks = tokenize(t);
       const hi = computeHiddenIndices(toks, dictat.config.hidePct || 100);
       save({ text: t, hiddenIndices: hi });
@@ -59,7 +83,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }) {
   );
 
   const commitHidePct = useCallback(
-    (pct) => {
+    (pct: number) => {
       const hi = computeHiddenIndices(tokens, pct);
       setDictat((p) => {
         const n = { ...p, config: { ...p.config, hidePct: pct }, hiddenIndices: hi };
@@ -70,7 +94,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }) {
     [tokens],
   );
 
-  const toggleWord = useCallback((i) => {
+  const toggleWord = useCallback((i: number) => {
     setDictat((p) => {
       const s = new Set(p.hiddenIndices || []);
       if (s.has(i)) {
@@ -408,7 +432,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }) {
                     ].map(({ k, l }) => (
                       <button
                         key={k}
-                        onClick={() => saveCfg({ fontType: k })}
+                        onClick={() => saveCfg({ fontType: k as "lligada" | "impremta" })}
                         style={{
                           padding: "7px 14px",
                           borderRadius: 10,

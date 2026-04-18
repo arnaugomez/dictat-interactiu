@@ -5,9 +5,14 @@ import { I } from "../components/Icons";
 import { FloatingDeco, Btn } from "../components/ui";
 import { randomExample } from "../data/examples";
 
-export default function HomeScreen({ onCreateDictat, onShowList }) {
+interface HomeScreenProps {
+  onCreateDictat: (text: string) => void;
+  onShowList: () => void;
+}
+
+export default function HomeScreen({ onCreateDictat, onShowList }: HomeScreenProps) {
   const [text, setText] = useState("");
-  const textRef = useRef(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   return (
     <div
       style={{

@@ -8,6 +8,13 @@
     "start": "bun run src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run src/db/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src",
+    "lint:check": "oxlint src",
+    "format": "oxfmt --write src",
+    "format:check": "oxfmt --check src",
+    "check": "tsc --noEmit && oxlint src && oxfmt --check src",
+    "fix": "oxlint --fix src && oxfmt --write src",
     "test": "vitest run",
     "test:watch": "vitest"
   },

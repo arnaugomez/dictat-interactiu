@@ -5,9 +5,16 @@ import { I } from "../components/Icons";
 import { FloatingDeco, Btn, ConfirmModal } from "../components/ui";
 import { DictatRepository } from "../data/repository";
 
-export default function ListScreen({ onBack, onEdit, onPractice, onNew }) {
+interface ListScreenProps {
+  onBack: () => void;
+  onEdit: (id: string) => void;
+  onPractice: (id: string) => void;
+  onNew: () => void;
+}
+
+export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListScreenProps) {
   const [dictats, setDictats] = useState(DictatRepository.getAll());
-  const [deleteId, setDeleteId] = useState(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const confirmDelete = () => {
     if (deleteId) {
       DictatRepository.remove(deleteId);

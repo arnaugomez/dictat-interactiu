@@ -6,6 +6,8 @@
       "name": "dictat-interactiu",
       "devDependencies": {
         "@effect/language-service": "*",
+        "oxfmt": "^0.45.0",
+        "oxlint": "^1.60.0",
         "typescript": "*",
       },
     },

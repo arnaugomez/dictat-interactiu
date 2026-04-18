@@ -1,9 +1,33 @@
+import type {
+  ChangeEvent,
+  Dispatch,
+  FocusEvent,
+  KeyboardEvent,
+  MutableRefObject,
+  SetStateAction,
+} from "react";
 import { useCallback, useMemo } from "react";
 import { C } from "../theme/colors";
 import { getFont } from "../theme/fonts";
 import { toUpper, isAlphaChar } from "../utils/tokenizer";
+import type { Token } from "../utils/tokenizer";
 
 const ALPHA_RE = /[^a-zA-ZÀ-ÿÑñ·ŀĿ'''-]/g;
+
+interface TokenRendererProps {
+  tokens: Token[];
+  hiddenSet: Set<number>;
+  fontSize: number;
+  lletraPal: boolean;
+  fontType: string;
+  mode?: "preview" | "practice";
+  onToggleWord?: (index: number) => void;
+  answers?: Record<number, string>;
+  setAnswers?: Dispatch<SetStateAction<Record<number, string>>>;
+  results?: { correct: number; total: number; details: Record<number, boolean> } | null;
+  showCorrections?: boolean;
+  inputRefs?: MutableRefObject<Record<number, HTMLInputElement | null>>;
+}
 
 export default function TokenRenderer({
   tokens,
@@ -18,10 +42,10 @@ export default function TokenRenderer({
   results,
   showCorrections,
   inputRefs,
-}) {
+}: TokenRendererProps) {
   const ff = getFont(fontType, false);
   const fw = fontType === "lligada" ? 300 : 600;
-  const displayT = useCallback((s) => (lletraPal ? toUpper(s) : s), [lletraPal]);
+  const displayT = useCallback((s: string) => (lletraPal ? toUpper(s) : s), [lletraPal]);
 
   const hiddenOrder = useMemo(
     () =>
@@ -29,20 +53,20 @@ export default function TokenRenderer({
     [tokens, hiddenSet],
   );
   const focusIdx = useCallback(
-    (idx) => {
+    (idx: number) => {
       inputRefs?.current?.[idx]?.focus();
     },
     [inputRefs],
   );
   const focusNext = useCallback(
-    (cur) => {
+    (cur: number) => {
       const p = hiddenOrder.indexOf(cur);
       if (p < hiddenOrder.length - 1) focusIdx(hiddenOrder[p + 1]);
     },
     [hiddenOrder, focusIdx],
   );
   const focusPrev = useCallback(
-    (cur) => {
+    (cur: number) => {
       const p = hiddenOrder.indexOf(cur);
       if (p > 0) focusIdx(hiddenOrder[p - 1]);
     },
@@ -50,10 +74,10 @@ export default function TokenRenderer({
   );
 
   const handleKeyDown = useCallback(
-    (e, ti) => {
-      if (e.isComposing || e.key === "Dead" || e.key === "Process") return;
+    (e: KeyboardEvent<HTMLInputElement>, ti: number) => {
+      if (e.nativeEvent.isComposing || e.key === "Dead" || e.key === "Process") return;
       const val = answers?.[ti] || "";
-      const el = e.target;
+      const el = e.target as HTMLInputElement;
       if (e.key === "ArrowLeft" && el.selectionStart === 0) {
         e.preventDefault();
         focusPrev(ti);
@@ -92,9 +116,9 @@ export default function TokenRenderer({
   );
 
   const handleChange = useCallback(
-    (e, ti) => {
+    (e: ChangeEvent<HTMLInputElement>, ti: number) => {
       let val = e.target.value;
-      if (e.nativeEvent?.isComposing) {
+      if ((e.nativeEvent as InputEvent)?.isComposing) {
         setAnswers?.((prev) => ({ ...prev, [ti]: val }));
         return;
       }
@@ -106,7 +130,7 @@ export default function TokenRenderer({
   );
 
   const handleBlur = useCallback(
-    (e, ti, ok, bad) => {
+    (e: FocusEvent<HTMLInputElement>, ti: number, ok: boolean, bad: boolean) => {
       const raw = answers?.[ti] || "";
       const clean = lletraPal ? toUpper(raw.replace(ALPHA_RE, "")) : raw.replace(ALPHA_RE, "");
       if (clean !== raw) setAnswers?.((prev) => ({ ...prev, [ti]: clean }));
@@ -188,8 +212,8 @@ export default function TokenRenderer({
             const ansLen = (answers?.[i] || "").length;
             const w = Math.max(baseW, ansLen * fontSize * 0.65 + 20);
             const checked = results?.details?.[i] !== undefined;
-            const ok = checked && results.details[i];
-            const bad = checked && !results.details[i];
+            const ok = checked && (results?.details[i] ?? false);
+            const bad = checked && !(results?.details[i] ?? false);
             return (
               <span
                 key={i}

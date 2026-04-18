@@ -1,6 +1,13 @@
+import type { ReactElement, ReactNode, SVGProps } from "react";
 import { C } from "../theme/colors";
 
-const Ic = ({ children, size = 20, ...p }) => (
+interface IcProps extends SVGProps<SVGSVGElement> {
+  children?: ReactNode;
+  size?: number;
+  fc?: string;
+}
+
+const Ic = ({ children, size = 20, ...p }: IcProps) => (
   <svg
     width={size}
     height={size}
@@ -16,7 +23,7 @@ const Ic = ({ children, size = 20, ...p }) => (
   </svg>
 );
 
-export const I = {
+export const I: Record<string, (p?: IcProps) => ReactElement> = {
   back: (p) => (
     <Ic {...p}>
       <path d="M19 12H5M12 19l-7-7 7-7" />

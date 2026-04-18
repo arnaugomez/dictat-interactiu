@@ -1,22 +1,25 @@
-import { Effect, Context, Layer } from "effect"
-import { Resend } from "resend"
+import { Effect, Context, Layer } from "effect";
+import { Resend } from "resend";
 
-export class Email extends Context.Service<Email, {
-  readonly sendVerificationEmail: (
-    email: string,
-    token: string,
-    baseUrl: string,
-  ) => Effect.Effect<void>
-  readonly sendPasswordResetEmail: (
-    email: string,
-    token: string,
-    baseUrl: string,
-  ) => Effect.Effect<void>
-}>()("@dictat/Email") {}
+export class Email extends Context.Service<
+  Email,
+  {
+    readonly sendVerificationEmail: (
+      email: string,
+      token: string,
+      baseUrl: string,
+    ) => Effect.Effect<void>;
+    readonly sendPasswordResetEmail: (
+      email: string,
+      token: string,
+      baseUrl: string,
+    ) => Effect.Effect<void>;
+  }
+>()("@dictat/Email") {}
 
 export const EmailLive = Layer.sync(Email, () => {
-  const resend = new Resend(process.env.RESEND_API_KEY)
-  const from = process.env.EMAIL_FROM || "noreply@dictteasy.com"
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = process.env.EMAIL_FROM || "noreply@dictteasy.com";
 
   return {
     sendVerificationEmail: (email: string, token: string, baseUrl: string) =>
@@ -48,23 +51,23 @@ export const EmailLive = Layer.sync(Email, () => {
           `,
         }),
       ).pipe(Effect.asVoid),
-  }
-})
+  };
+});
 
 export const EmailMock = Layer.sync(Email, () => {
-  const sentEmails: Array<{ to: string; type: string; token: string }> = []
+  const sentEmails: Array<{ to: string; type: string; token: string }> = [];
 
   return {
     sendVerificationEmail: (email: string, token: string, _baseUrl: string) =>
       Effect.sync(() => {
-        sentEmails.push({ to: email, type: "verification", token })
-        console.log(`[MOCK EMAIL] Verification email to ${email} with token ${token}`)
+        sentEmails.push({ to: email, type: "verification", token });
+        console.log(`[MOCK EMAIL] Verification email to ${email} with token ${token}`);
       }),
 
     sendPasswordResetEmail: (email: string, token: string, _baseUrl: string) =>
       Effect.sync(() => {
-        sentEmails.push({ to: email, type: "password-reset", token })
-        console.log(`[MOCK EMAIL] Password reset email to ${email} with token ${token}`)
+        sentEmails.push({ to: email, type: "password-reset", token });
+        console.log(`[MOCK EMAIL] Password reset email to ${email} with token ${token}`);
       }),
-  }
-})
+  };
+});

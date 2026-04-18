@@ -23,4 +23,4 @@ export const C = {
   errorBg: "#FFEBEE",
   shadow: "0 4px 24px rgba(45,48,71,0.07)",
   shadowLg: "0 8px 40px rgba(45,48,71,0.10)",
-};
+} as const;

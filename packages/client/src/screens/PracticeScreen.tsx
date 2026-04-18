@@ -7,13 +7,44 @@ import TokenRenderer from "../components/TokenRenderer";
 import { DictatRepository } from "../data/repository";
 import { tokenize, toUpper } from "../utils/tokenizer";
 
-export default function PracticeScreen({ dictatId, onBack }) {
-  const dictat = useMemo(() => DictatRepository.getById(dictatId), [dictatId]);
-  const [fontSize, setFontSize] = useState(dictat?.config?.fontSize || 22);
-  const [answers, setAnswers] = useState({});
-  const [results, setResults] = useState(null);
+interface DictatConfig {
+  lletraPal: boolean;
+  fontSize: number;
+  hidePct: number;
+  fontType: "impremta" | "lligada";
+}
+
+interface Dictat {
+  id: string;
+  title: string;
+  text: string;
+  config: DictatConfig;
+  hiddenIndices: number[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface CheckResults {
+  correct: number;
+  total: number;
+  details: Record<number, boolean>;
+}
+
+interface PracticeScreenProps {
+  dictatId: string;
+  onBack: () => void;
+}
+
+export default function PracticeScreen({ dictatId, onBack }: PracticeScreenProps) {
+  const dictat = useMemo<Dictat | null>(
+    () => DictatRepository.getById(dictatId) ?? null,
+    [dictatId],
+  );
+  const [fontSize, setFontSize] = useState(dictat?.config?.fontSize ?? 22);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [results, setResults] = useState<CheckResults | null>(null);
   const [showCorrections, setShowCorrections] = useState(false);
-  const inputRefs = useRef({});
+  const inputRefs = useRef<Record<number, HTMLInputElement>>({});
 
   const tokens = useMemo(() => tokenize(dictat?.text || ""), [dictat]);
   const hiddenSet = useMemo(() => new Set(dictat?.hiddenIndices || []), [dictat]);
@@ -22,7 +53,7 @@ export default function PracticeScreen({ dictatId, onBack }) {
       tokens.map((t, i) => (t.type === "word" && hiddenSet.has(i) ? i : -1)).filter((i) => i >= 0),
     [tokens, hiddenSet],
   );
-  const ll = dictat?.config?.lletraPal;
+  const ll = dictat?.config?.lletraPal ?? false;
   const ft = dictat?.config?.fontType || "impremta";
 
   useEffect(() => {
@@ -33,11 +64,12 @@ export default function PracticeScreen({ dictatId, onBack }) {
   }, []);
 
   const checkResults = () => {
+    if (!dictat) return;
     let correct = 0;
-    const details = {};
+    const details: Record<number, boolean> = {};
     hiddenOrder.forEach((idx) => {
       const exp = ll ? toUpper(tokens[idx].value) : tokens[idx].value;
-      const ok = (answers[idx] || "").trim().toLowerCase() === exp.toLowerCase();
+      const ok = (answers[idx] ?? "").trim().toLowerCase() === exp.toLowerCase();
       if (ok) correct++;
       details[idx] = ok;
     });

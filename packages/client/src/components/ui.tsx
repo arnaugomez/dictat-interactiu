@@ -1,3 +1,4 @@
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useState, useRef, useEffect } from "react";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
@@ -34,8 +35,15 @@ export const FloatingDeco = () => (
   </div>
 );
 
-export const Btn = ({ children, variant = "ghost", color, style, ...props }) => {
-  const base = {
+interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "ghost" | "primary" | "secondary" | "soft";
+  color?: string;
+  style?: CSSProperties;
+  children?: ReactNode;
+}
+
+export const Btn = ({ children, variant = "ghost", color, style, ...props }: BtnProps) => {
+  const base: CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
     gap: 7,
@@ -48,7 +56,7 @@ export const Btn = ({ children, variant = "ghost", color, style, ...props }) => 
     border: "none",
     padding: "10px 18px",
   };
-  const v = {
+  const v: Record<string, CSSProperties> = {
     primary: {
       background: `linear-gradient(135deg,${C.primary},${C.primaryDark})`,
       color: "#fff",
@@ -77,7 +85,12 @@ export const Btn = ({ children, variant = "ghost", color, style, ...props }) => 
   );
 };
 
-export const Toggle = ({ value, onChange }) => (
+interface ToggleProps {
+  value: boolean;
+  onChange: (v: boolean) => void;
+}
+
+export const Toggle = ({ value, onChange }: ToggleProps) => (
   <button
     onClick={() => onChange(!value)}
     style={{
@@ -108,7 +121,13 @@ export const Toggle = ({ value, onChange }) => (
   </button>
 );
 
-export const ConfirmModal = ({ message, onConfirm, onCancel }) => (
+interface ConfirmModalProps {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+export const ConfirmModal = ({ message, onConfirm, onCancel }: ConfirmModalProps) => (
   <div
     style={{
       position: "fixed",
@@ -192,7 +211,12 @@ export const ConfirmModal = ({ message, onConfirm, onCancel }) => (
   </div>
 );
 
-export const Toast = ({ msg, onDone }) => {
+interface ToastProps {
+  msg: string;
+  onDone: () => void;
+}
+
+export const Toast = ({ msg, onDone }: ToastProps) => {
   useEffect(() => {
     const t = setTimeout(onDone, 2000);
     return () => clearTimeout(t);
@@ -233,12 +257,23 @@ export const Toast = ({ msg, onDone }) => {
   );
 };
 
-export const Dropdown = ({ options, onSelect, children }) => {
+interface DropdownOption {
+  label: string;
+  value: string;
+}
+
+interface DropdownProps {
+  options: DropdownOption[];
+  onSelect: (value: string) => void;
+  children: ReactNode;
+}
+
+export const Dropdown = ({ options, onSelect, children }: DropdownProps) => {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const h = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);

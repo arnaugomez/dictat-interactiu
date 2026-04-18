@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -8,7 +8,7 @@ export const users = sqliteTable("users", {
   emailVerified: integer("email_verified").notNull().default(0),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
-})
+});
 
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
@@ -16,7 +16,7 @@ export const sessions = sqliteTable("sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at").notNull(),
-})
+});
 
 export const emailVerificationTokens = sqliteTable("email_verification_tokens", {
   id: text("id").primaryKey(),
@@ -24,7 +24,7 @@ export const emailVerificationTokens = sqliteTable("email_verification_tokens", 
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at").notNull(),
-})
+});
 
 export const passwordResetTokens = sqliteTable("password_reset_tokens", {
   id: text("id").primaryKey(),
@@ -32,7 +32,7 @@ export const passwordResetTokens = sqliteTable("password_reset_tokens", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at").notNull(),
-})
+});
 
 export const dictats = sqliteTable("dictats", {
   id: text("id").primaryKey(),
@@ -45,4 +45,4 @@ export const dictats = sqliteTable("dictats", {
   hiddenIndices: text("hidden_indices").notNull(), // JSON array
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
-})
+});

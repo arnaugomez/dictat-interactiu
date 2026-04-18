@@ -1,17 +1,40 @@
+import type { Token } from "./tokenizer";
 import { toUpper } from "./tokenizer";
 
-export function doPrint(dictat, tokens, hiddenSet, mode) {
+interface DictatConfig {
+  lletraPal: boolean;
+  fontSize: number;
+  hidePct: number;
+  fontType: "impremta" | "lligada";
+}
+
+interface Dictat {
+  id: string;
+  title: string;
+  text: string;
+  config: DictatConfig;
+  hiddenIndices: number[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export function doPrint(
+  dictat: Dictat,
+  tokens: Token[],
+  hiddenSet: Set<number>,
+  mode: string,
+): void {
   const fs = dictat.config.fontSize || 22;
   const ll = dictat.config.lletraPal;
   const ft = dictat.config.fontType || "impremta";
   const ffam = ft === "lligada" ? "'Playwrite PE', cursive" : "'Nunito', sans-serif";
-  const disp = (s) => (ll ? toUpper(s) : s);
+  const disp = (s: string) => (ll ? toUpper(s) : s);
   const showHidden = mode === "exercici" || mode === "ambdos";
   const showText = mode === "text" || mode === "ambdos";
   const pw = window.open("", "_blank");
   if (!pw) return;
 
-  const renderBlock = (withBlanks) => {
+  const renderBlock = (withBlanks: boolean) => {
     let h = `<div class="wrap">`;
     tokens.forEach((t, i) => {
       if (t.type === "newline") {

@@ -4,6 +4,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "noEmit": true,
+    "declarationMap": false,
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true
   },

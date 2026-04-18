@@ -11,7 +11,8 @@
     "lint:check": "oxlint src",
     "format": "oxfmt --write src",
     "format:check": "oxfmt --check src",
-    "check": "oxlint src && oxfmt --check src",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && oxlint src && oxfmt --check src",
     "fix": "oxlint --fix src && oxfmt --write src"
   },
   "dependencies": {
