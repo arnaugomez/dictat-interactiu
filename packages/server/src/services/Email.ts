@@ -58,16 +58,18 @@ export const EmailMock = Layer.sync(Email, () => {
   const sentEmails: Array<{ to: string; type: string; token: string }> = [];
 
   return {
-    sendVerificationEmail: (email: string, token: string, _baseUrl: string) =>
+    sendVerificationEmail: (email: string, token: string, baseUrl: string) =>
       Effect.sync(() => {
         sentEmails.push({ to: email, type: "verification", token });
-        console.log(`[MOCK EMAIL] Verification email to ${email} with token ${token}`);
+        console.log(`[MOCK EMAIL] Verification email to ${email}`);
+        console.log(`  → ${baseUrl}/verify-email?token=${token}`);
       }),
 
-    sendPasswordResetEmail: (email: string, token: string, _baseUrl: string) =>
+    sendPasswordResetEmail: (email: string, token: string, baseUrl: string) =>
       Effect.sync(() => {
         sentEmails.push({ to: email, type: "password-reset", token });
-        console.log(`[MOCK EMAIL] Password reset email to ${email} with token ${token}`);
+        console.log(`[MOCK EMAIL] Password reset email to ${email}`);
+        console.log(`  → ${baseUrl}/reset-password?token=${token}`);
       }),
   };
 });
