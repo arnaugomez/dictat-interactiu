@@ -1,0 +1,28 @@
+{
+  "name": "@dictat/server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run src/db/migrate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@dictat/shared": "workspace:*",
+    "@effect/platform-bun": "4.0.0-beta.50",
+    "drizzle-orm": "*",
+    "effect": "4.0.0-beta.50",
+    "resend": "*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "*",
+    "vitest": "*",
+    "@effect/vitest": "*",
+    "typescript": "*",
+    "bun-types": "*"
+  }
+}
