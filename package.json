@@ -4,13 +4,16 @@
   "workspaces": ["packages/*"],
   "scripts": {
     "prepare": "effect-language-service patch || true",
-    "check": "bun run --filter '@dictat/*' check",
-    "typecheck": "bun run --filter '@dictat/*' typecheck"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check": "turbo check",
+    "typecheck": "turbo typecheck"
   },
   "devDependencies": {
     "@effect/language-service": "*",
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
+    "turbo": "^2.9.6",
     "typescript": "*"
   }
 }
