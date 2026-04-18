@@ -1,6 +1,7 @@
 {
   "name": "dictat-interactiu",
   "private": true,
+  "packageManager": "bun@1.3.10",
   "workspaces": ["packages/*"],
   "scripts": {
     "prepare": "effect-language-service patch || true",
