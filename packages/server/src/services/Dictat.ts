@@ -1,10 +1,14 @@
-import { Effect, Context, Layer } from "effect";
+import { Effect, Context, Layer, Schema } from "effect";
 import { eq, and, desc } from "drizzle-orm";
 import { Db, DatabaseError, runDb } from "../db/client.js";
 import * as schema from "../db/schema.js";
 import * as crypto from "../lib/crypto.js";
 import { NotFoundError } from "./Auth.js";
 import type { Dictat as DictatType } from "@dictat/shared";
+import { DictatConfig } from "@dictat/shared";
+
+const ConfigJson = Schema.fromJsonString(DictatConfig);
+const HiddenIndicesJson = Schema.fromJsonString(Schema.Array(Schema.Number));
 
 export class DictatService extends Context.Service<
   DictatService,
@@ -49,8 +53,8 @@ export const DictatServiceLive = Layer.effect(
       id: row.id,
       title: row.title,
       text: row.text,
-      config: JSON.parse(row.config),
-      hiddenIndices: JSON.parse(row.hiddenIndices),
+      config: Schema.decodeSync(ConfigJson)(row.config),
+      hiddenIndices: Schema.decodeSync(HiddenIndicesJson)(row.hiddenIndices),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -107,8 +111,8 @@ export const DictatServiceLive = Layer.effect(
         userId,
         title: data.title || defaultTitle,
         text: data.text,
-        config: JSON.stringify(data.config || defaultConfig),
-        hiddenIndices: JSON.stringify(data.hiddenIndices || []),
+        config: Schema.encodeSync(ConfigJson)(data.config || defaultConfig),
+        hiddenIndices: Schema.encodeSync(HiddenIndicesJson)(data.hiddenIndices || []),
         createdAt: now,
         updatedAt: now,
       };
@@ -140,9 +144,9 @@ export const DictatServiceLive = Layer.effect(
       const updates: Record<string, unknown> = { updatedAt: now };
       if (data.title !== undefined) updates.title = data.title;
       if (data.text !== undefined) updates.text = data.text;
-      if (data.config !== undefined) updates.config = JSON.stringify(data.config);
+      if (data.config !== undefined) updates.config = Schema.encodeSync(ConfigJson)(data.config);
       if (data.hiddenIndices !== undefined)
-        updates.hiddenIndices = JSON.stringify(data.hiddenIndices);
+        updates.hiddenIndices = Schema.encodeSync(HiddenIndicesJson)(data.hiddenIndices);
 
       yield* runDb(() =>
         db

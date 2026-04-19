@@ -9,6 +9,8 @@
     "build": "turbo build",
     "check": "turbo check",
     "fix": "turbo fix",
+    "test": "turbo test",
+    "test:e2e": "turbo test:e2e",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
