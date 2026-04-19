@@ -3,6 +3,7 @@ import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { FloatingDeco, Btn } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
+import PasswordInput from "../components/PasswordInput";
 
 interface SignupScreenProps {
   onNavigate: (path: string) => void;
@@ -186,24 +187,10 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
               >
                 Contrasenya
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínim 8 caràcters"
                 required
-                style={{
-                  fontFamily: F.body,
-                  fontSize: 15,
-                  color: C.text,
-                  background: C.bg,
-                  border: `1.5px solid ${C.border}`,
-                  borderRadius: 12,
-                  padding: "11px 14px",
-                  outline: "none",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
               />
@@ -220,24 +207,10 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
               >
                 Confirma la contrasenya
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
                 required
-                style={{
-                  fontFamily: F.body,
-                  fontSize: 15,
-                  color: C.text,
-                  background: C.bg,
-                  border: `1.5px solid ${C.border}`,
-                  borderRadius: 12,
-                  padding: "11px 14px",
-                  outline: "none",
-                  width: "100%",
-                  boxSizing: "border-box",
-                }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
               />

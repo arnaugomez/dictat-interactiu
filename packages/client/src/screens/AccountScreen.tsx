@@ -5,6 +5,7 @@ import { I } from "../components/Icons";
 import { FloatingDeco, Btn, Toast, ConfirmModal } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { updateProfile, changePassword, deleteAccount } from "../api/account";
+import PasswordInput from "../components/PasswordInput";
 
 interface AccountScreenProps {
   onBack: () => void;
@@ -253,39 +254,30 @@ export default function AccountScreen({ onBack }: AccountScreenProps) {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={labelStyle}>Contrasenya actual</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="••••••••"
                 required
-                style={inputStyle}
                 onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={labelStyle}>Nova contrasenya</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Mínim 8 caràcters"
                 required
-                style={inputStyle}
                 onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={labelStyle}>Confirma la nova contrasenya</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                placeholder="••••••••"
                 required
-                style={inputStyle}
                 onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
               />

@@ -18,6 +18,7 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
   const [sendError, setSendError] = useState("");
   const [sendSuccess, setSendSuccess] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   // Auto-verify if token is in URL
   useEffect(() => {
@@ -26,10 +27,10 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
     if (!token) return;
     setVerifying(true);
     verifyEmail({ token })
-      .then(() => refreshUser())
+      .then(() => setVerified(true))
       .catch(() => setSendError("El token de verificació no és vàlid o ha caducat."))
       .finally(() => setVerifying(false));
-  }, [refreshUser]);
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -56,6 +57,91 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
       setSending(false);
     }
   }, [cooldown, sending]);
+
+  if (verified) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: C.bg,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px 16px",
+          position: "relative",
+        }}
+      >
+        <FloatingDeco />
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            width: "100%",
+            maxWidth: 620,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <div style={{ textAlign: "center", marginBottom: 4 }}>
+            <div style={{ fontSize: 52, marginBottom: 10 }}>✅</div>
+            <h1
+              style={{
+                fontFamily: F.display,
+                fontSize: "clamp(26px, 5vw, 34px)",
+                fontWeight: 700,
+                color: C.text,
+                margin: 0,
+              }}
+            >
+              Correu verificat!
+            </h1>
+          </div>
+
+          <div
+            style={{
+              background: C.card,
+              borderRadius: 20,
+              boxShadow: C.shadow,
+              border: `1px solid ${C.borderLight}`,
+              padding: "28px 28px 24px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 20,
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: F.body,
+                fontSize: 16,
+                color: C.textLight,
+                margin: 0,
+                lineHeight: 1.6,
+              }}
+            >
+              El teu correu ha estat verificat correctament.
+            </p>
+
+            <Btn
+              variant="primary"
+              onClick={() => refreshUser()}
+              style={{
+                justifyContent: "center",
+                fontFamily: F.display,
+                fontSize: 15,
+                padding: "12px 28px",
+              }}
+            >
+              Anar a l&apos;inici
+            </Btn>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

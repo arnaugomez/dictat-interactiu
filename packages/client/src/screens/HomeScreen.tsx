@@ -26,6 +26,7 @@ export default function HomeScreen({ onCreateDictat, onShowList }: HomeScreenPro
         position: "relative",
       }}
     >
+      <style>{`@media(max-width:480px){.example-btn{display:none!important}}`}</style>
       <FloatingDeco />
       <div
         style={{
@@ -115,22 +116,24 @@ export default function HomeScreen({ onCreateDictat, onShowList }: HomeScreenPro
               padding: "0 16px 16px",
             }}
           >
-            <Btn
-              variant="soft"
-              color={C.accentDark}
-              style={{
-                background: "linear-gradient(135deg,#FFD16618,#FFD16633)",
-                border: `1.5px solid ${C.accentDark}33`,
-                fontSize: 13,
-                padding: "8px 14px",
-              }}
-              onClick={() => {
-                setText(randomExample());
-                textRef.current?.focus();
-              }}
-            >
-              <I.star size={15} fc={C.accentDark} /> Dictat d'exemple
-            </Btn>
+            <span className="example-btn">
+              <Btn
+                variant="soft"
+                color={C.accentDark}
+                style={{
+                  background: "linear-gradient(135deg,#FFD16618,#FFD16633)",
+                  border: `1.5px solid ${C.accentDark}33`,
+                  fontSize: 13,
+                  padding: "8px 14px",
+                }}
+                onClick={() => {
+                  setText(randomExample());
+                  textRef.current?.focus();
+                }}
+              >
+                <I.star size={15} fc={C.accentDark} /> Dictat d'exemple
+              </Btn>
+            </span>
             <Btn
               variant="primary"
               onClick={() => text.trim() && onCreateDictat(text.trim())}

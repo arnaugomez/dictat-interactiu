@@ -200,6 +200,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
         position: "relative",
       }}
     >
+      <style>{`@media(max-width:600px){.btn-label{display:none!important}.hide-mobile{display:none!important}}`}</style>
       <FloatingDeco />
       {/* TOP BAR */}
       <div
@@ -299,11 +300,12 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
               borderColor: `${C.success}44`,
             }}
           >
-            <I.save size={16} /> Guardar
+            <I.save size={16} /> <span className="btn-label">Guardar</span>
           </Btn>
           <Dropdown options={printOpts} onSelect={(v) => doPrint(dictat, tokens, hiddenSet, v)}>
             <Btn variant="soft" color={C.purple} style={{ padding: "8px 14px", fontSize: 13 }}>
-              <I.print size={16} /> Imprimir <I.chevDown size={14} />
+              <I.print size={16} /> <span className="btn-label">Imprimir</span>{" "}
+              <I.chevDown size={14} />
             </Btn>
           </Dropdown>
           <Btn
@@ -667,7 +669,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
                   <I.eye size={16} /> Vista prèvia
                 </span>
                 <span style={{ fontFamily: F.body, fontSize: 11, color: C.textMuted }}>
-                  Clica una paraula per ocultar-la o mostrar-la
+                  Clica una paraula per ocultar-la<span className="hide-mobile"> o mostrar-la</span>
                 </span>
               </div>
               <div style={{ padding: "8px 22px 22px" }}>

@@ -3,6 +3,7 @@ import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { FloatingDeco, Btn } from "../components/ui";
 import { resetPassword } from "../api/auth";
+import PasswordInput from "../components/PasswordInput";
 
 interface ResetPasswordScreenProps {
   onNavigate: (path: string) => void;
@@ -182,24 +183,10 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
                   >
                     Nova contrasenya
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Mínim 8 caràcters"
                     required
-                    style={{
-                      fontFamily: F.body,
-                      fontSize: 15,
-                      color: C.text,
-                      background: C.bg,
-                      border: `1.5px solid ${C.border}`,
-                      borderRadius: 12,
-                      padding: "11px 14px",
-                      outline: "none",
-                      width: "100%",
-                      boxSizing: "border-box",
-                    }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                     onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
                   />
@@ -216,24 +203,10 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
                   >
                     Confirma la nova contrasenya
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
                     required
-                    style={{
-                      fontFamily: F.body,
-                      fontSize: 15,
-                      color: C.text,
-                      background: C.bg,
-                      border: `1.5px solid ${C.border}`,
-                      borderRadius: 12,
-                      padding: "11px 14px",
-                      outline: "none",
-                      width: "100%",
-                      boxSizing: "border-box",
-                    }}
                     onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
                     onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
                   />

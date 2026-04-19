@@ -169,11 +169,13 @@ export default function App() {
   return (
     <>
       <GlobalStyles />
-      <AppHeader
-        onAccount={() => navigate("/account")}
-        onLogout={handleLogout}
-        userName={userName}
-      />
+      {route.path === "/" && (
+        <AppHeader
+          onAccount={() => navigate("/account")}
+          onLogout={handleLogout}
+          userName={userName}
+        />
+      )}
       {route.path === "/list" && (
         <ListScreen
           onBack={nav.home}
