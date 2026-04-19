@@ -14,10 +14,10 @@
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
-    "@effect/language-service": "*",
+    "@effect/language-service": "^0.85.1",
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
     "turbo": "^2.9.6",
-    "typescript": "*"
+    "typescript": "^6.0.3"
   }
 }

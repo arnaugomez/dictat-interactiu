@@ -21,15 +21,15 @@
   "dependencies": {
     "@dictat/shared": "workspace:*",
     "@effect/platform-bun": "4.0.0-beta.50",
-    "drizzle-orm": "*",
+    "drizzle-orm": "^0.45.2",
     "effect": "4.0.0-beta.50",
-    "resend": "*"
+    "resend": "^6.12.0"
   },
   "devDependencies": {
-    "drizzle-kit": "*",
-    "vitest": "*",
-    "@effect/vitest": "*",
-    "typescript": "*",
-    "bun-types": "*"
+    "drizzle-kit": "^0.31.10",
+    "vitest": "^4.1.4",
+    "@effect/vitest": "^0.29.0",
+    "typescript": "^6.0.3",
+    "bun-types": "^1.3.12"
   }
 }
