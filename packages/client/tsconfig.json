@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "declarationMap": false,
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@dictat/client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "oxlint src",
+    "lint:check": "oxlint src",
+    "format": "oxfmt --write src",
+    "format:check": "oxfmt --check src",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && oxlint src && oxfmt --check src",
+    "fix": "oxlint --fix src && oxfmt --write src",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@dictat/shared": "workspace:*",
+    "effect": "4.0.0-beta.50",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "oxfmt": "*",
+    "oxlint": "*",
+    "typescript": "*",
+    "vite": "^8.0.4"
+  }
+}
