@@ -46,5 +46,9 @@ drizzle/meta
 # Plan file
 plan.md
 
+# Playwright
+test-results/
+playwright-report/
+
 # Temporary files
 .tmp/
