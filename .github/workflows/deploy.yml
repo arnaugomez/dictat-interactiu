@@ -48,7 +48,7 @@ jobs:
             sudo systemctl restart dictteasy
 
             echo "==> Waiting for server to start..."
-            sleep 3
+            sleep 1
 
             echo "==> Health check..."
             curl --fail --silent --max-time 10 http://localhost:3000/api/health || {
