@@ -1,6 +1,7 @@
 import { HttpServerRequest } from "effect/unstable/http";
 import { Effect, Data } from "effect";
 import { Auth } from "../services/Auth.js";
+import type { DatabaseError } from "../db/client.js";
 import type * as schema from "../db/schema.js";
 
 export class UnauthorizedError extends Data.TaggedError("UnauthorizedError")<{
@@ -18,7 +19,7 @@ export interface AuthResult {
 
 export const requireAuth: Effect.Effect<
   AuthResult,
-  UnauthorizedError,
+  UnauthorizedError | DatabaseError,
   Auth | HttpServerRequest.HttpServerRequest
 > = Effect.gen(function* () {
   const request = yield* HttpServerRequest.HttpServerRequest;
@@ -42,7 +43,7 @@ export const requireAuth: Effect.Effect<
 
 export const requireVerifiedAuth: Effect.Effect<
   AuthResult,
-  UnauthorizedError | ForbiddenError,
+  UnauthorizedError | ForbiddenError | DatabaseError,
   Auth | HttpServerRequest.HttpServerRequest
 > = Effect.gen(function* () {
   const { user, session } = yield* requireAuth;

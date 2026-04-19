@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect";
 import { eq } from "drizzle-orm";
 import { Auth } from "../services/Auth.js";
 import { Email } from "../services/Email.js";
-import { Db } from "../db/client.js";
+import { Db, runDb } from "../db/client.js";
 import * as schema from "../db/schema.js";
 import * as crypto from "../lib/crypto.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -53,11 +53,13 @@ const signup = HttpRouter.add(
       }
 
       const { client: db } = yield* Db;
-      const existing = db.query.users
-        .findFirst({
-          where: eq(schema.users.email, email.toLowerCase()),
-        })
-        .sync();
+      const existing = yield* runDb(() =>
+        db.query.users
+          .findFirst({
+            where: eq(schema.users.email, email.toLowerCase()),
+          })
+          .sync(),
+      );
       if (existing) {
         return yield* HttpServerResponse.json(
           { error: "ConflictError", message: "An account with this email already exists" },
@@ -70,17 +72,20 @@ const signup = HttpRouter.add(
       const id = yield* crypto.generateId();
       const now = Date.now();
 
-      db.insert(schema.users)
-        .values({
-          id,
-          name,
-          email: email.toLowerCase(),
-          passwordHash,
-          emailVerified: 0,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      yield* runDb(() =>
+        db
+          .insert(schema.users)
+          .values({
+            id,
+            name,
+            email: email.toLowerCase(),
+            passwordHash,
+            emailVerified: 0,
+            createdAt: now,
+            updatedAt: now,
+          })
+          .run(),
+      );
 
       const token = yield* auth.generateEmailVerificationToken(id);
       const emailService = yield* Email;
@@ -120,11 +125,13 @@ const login = HttpRouter.add(
       }
 
       const { client: db } = yield* Db;
-      const user = db.query.users
-        .findFirst({
-          where: eq(schema.users.email, email.toLowerCase()),
-        })
-        .sync();
+      const user = yield* runDb(() =>
+        db.query.users
+          .findFirst({
+            where: eq(schema.users.email, email.toLowerCase()),
+          })
+          .sync(),
+      );
       if (!user) {
         return yield* HttpServerResponse.json(
           { error: "AuthError", message: "Invalid email or password" },
@@ -219,10 +226,13 @@ const verifyEmail = HttpRouter.add(
       }
 
       const { client: db } = yield* Db;
-      db.update(schema.users)
-        .set({ emailVerified: 1, updatedAt: Date.now() })
-        .where(eq(schema.users.id, userId))
-        .run();
+      yield* runDb(() =>
+        db
+          .update(schema.users)
+          .set({ emailVerified: 1, updatedAt: Date.now() })
+          .where(eq(schema.users.id, userId))
+          .run(),
+      );
 
       return yield* HttpServerResponse.json({ success: true });
     }),
@@ -270,11 +280,13 @@ const forgotPassword = HttpRouter.add(
       }
 
       const { client: db } = yield* Db;
-      const user = db.query.users
-        .findFirst({
-          where: eq(schema.users.email, email.toLowerCase()),
-        })
-        .sync();
+      const user = yield* runDb(() =>
+        db.query.users
+          .findFirst({
+            where: eq(schema.users.email, email.toLowerCase()),
+          })
+          .sync(),
+      );
 
       if (user) {
         const auth = yield* Auth;
@@ -324,10 +336,13 @@ const resetPassword = HttpRouter.add(
 
       const passwordHash = yield* auth.hashPassword(password);
       const { client: db } = yield* Db;
-      db.update(schema.users)
-        .set({ passwordHash, updatedAt: Date.now() })
-        .where(eq(schema.users.id, userId))
-        .run();
+      yield* runDb(() =>
+        db
+          .update(schema.users)
+          .set({ passwordHash, updatedAt: Date.now() })
+          .where(eq(schema.users.id, userId))
+          .run(),
+      );
 
       yield* auth.invalidateAllUserSessions(userId);
 

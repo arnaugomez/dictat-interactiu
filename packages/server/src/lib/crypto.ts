@@ -1,10 +1,29 @@
-import { Effect } from "effect";
+import { Effect, Data } from "effect";
+
+export class CryptoError extends Data.TaggedError("CryptoError")<{
+  readonly message: string;
+  readonly cause: Error;
+}> {}
 
 export const hashPassword = (password: string) =>
-  Effect.promise(() => Bun.password.hash(password, { algorithm: "argon2id" }));
+  Effect.tryPromise({
+    try: () => Bun.password.hash(password, { algorithm: "argon2id" }),
+    catch: (cause) =>
+      new CryptoError({
+        message: cause instanceof Error ? cause.message : String(cause),
+        cause: cause instanceof Error ? cause : new Error(String(cause)),
+      }),
+  });
 
 export const verifyPassword = (password: string, hash: string) =>
-  Effect.promise(() => Bun.password.verify(password, hash));
+  Effect.tryPromise({
+    try: () => Bun.password.verify(password, hash),
+    catch: (cause) =>
+      new CryptoError({
+        message: cause instanceof Error ? cause.message : String(cause),
+        cause: cause instanceof Error ? cause : new Error(String(cause)),
+      }),
+  });
 
 export const generateToken = () =>
   Effect.sync(() => {

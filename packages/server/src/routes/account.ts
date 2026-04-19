@@ -2,7 +2,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstab
 import { Effect, Layer } from "effect";
 import { eq } from "drizzle-orm";
 import { Auth } from "../services/Auth.js";
-import { Db } from "../db/client.js";
+import { Db, runDb } from "../db/client.js";
 import * as schema from "../db/schema.js";
 import { requireVerifiedAuth } from "../middleware/auth.js";
 import { catchAuthErrors } from "../lib/errors.js";
@@ -25,10 +25,13 @@ const updateProfile = HttpRouter.add(
       }
 
       const { client: db } = yield* Db;
-      db.update(schema.users)
-        .set({ name, updatedAt: Date.now() })
-        .where(eq(schema.users.id, user.id))
-        .run();
+      yield* runDb(() =>
+        db
+          .update(schema.users)
+          .set({ name, updatedAt: Date.now() })
+          .where(eq(schema.users.id, user.id))
+          .run(),
+      );
 
       return yield* HttpServerResponse.json({
         user: {
@@ -81,10 +84,13 @@ const changePassword = HttpRouter.add(
 
       const passwordHash = yield* auth.hashPassword(newPassword);
       const { client: db } = yield* Db;
-      db.update(schema.users)
-        .set({ passwordHash, updatedAt: Date.now() })
-        .where(eq(schema.users.id, user.id))
-        .run();
+      yield* runDb(() =>
+        db
+          .update(schema.users)
+          .set({ passwordHash, updatedAt: Date.now() })
+          .where(eq(schema.users.id, user.id))
+          .run(),
+      );
 
       return yield* HttpServerResponse.json({ success: true });
     }),
@@ -99,7 +105,7 @@ const deleteAccount = HttpRouter.add(
       const { user } = yield* requireVerifiedAuth;
       const { client: db } = yield* Db;
 
-      db.delete(schema.users).where(eq(schema.users.id, user.id)).run();
+      yield* runDb(() => db.delete(schema.users).where(eq(schema.users.id, user.id)).run());
 
       const resp = yield* HttpServerResponse.json({ success: true });
       return HttpServerResponse.setHeader(

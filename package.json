@@ -8,6 +8,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check": "turbo check",
+    "fix": "turbo fix",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {

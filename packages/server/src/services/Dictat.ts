@@ -1,6 +1,6 @@
 import { Effect, Context, Layer } from "effect";
 import { eq, and, desc } from "drizzle-orm";
-import { Db } from "../db/client.js";
+import { Db, DatabaseError, runDb } from "../db/client.js";
 import * as schema from "../db/schema.js";
 import * as crypto from "../lib/crypto.js";
 import { NotFoundError } from "./Auth.js";
@@ -9,8 +9,11 @@ import type { Dictat as DictatType } from "@dictat/shared";
 export class DictatService extends Context.Service<
   DictatService,
   {
-    readonly list: (userId: string) => Effect.Effect<DictatType[]>;
-    readonly getById: (id: string, userId: string) => Effect.Effect<DictatType, NotFoundError>;
+    readonly list: (userId: string) => Effect.Effect<DictatType[], DatabaseError>;
+    readonly getById: (
+      id: string,
+      userId: string,
+    ) => Effect.Effect<DictatType, NotFoundError | DatabaseError>;
     readonly create: (
       userId: string,
       data: {
@@ -19,7 +22,7 @@ export class DictatService extends Context.Service<
         config?: DictatType["config"] | undefined;
         hiddenIndices?: number[] | undefined;
       },
-    ) => Effect.Effect<DictatType>;
+    ) => Effect.Effect<DictatType, DatabaseError>;
     readonly update: (
       id: string,
       userId: string,
@@ -29,8 +32,11 @@ export class DictatService extends Context.Service<
         config?: DictatType["config"] | undefined;
         hiddenIndices?: number[] | undefined;
       },
-    ) => Effect.Effect<DictatType, NotFoundError>;
-    readonly remove: (id: string, userId: string) => Effect.Effect<void, NotFoundError>;
+    ) => Effect.Effect<DictatType, NotFoundError | DatabaseError>;
+    readonly remove: (
+      id: string,
+      userId: string,
+    ) => Effect.Effect<void, NotFoundError | DatabaseError>;
   }
 >()("@dictat/Dictat") {}
 
@@ -50,7 +56,7 @@ export const DictatServiceLive = Layer.effect(
     });
 
     const list = (userId: string) =>
-      Effect.sync(() =>
+      runDb(() =>
         db
           .select()
           .from(schema.dictats)
@@ -61,11 +67,13 @@ export const DictatServiceLive = Layer.effect(
       );
 
     const getById = Effect.fn("Dictat.getById")(function* (id: string, userId: string) {
-      const row = db.query.dictats
-        .findFirst({
-          where: and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)),
-        })
-        .sync();
+      const row = yield* runDb(() =>
+        db.query.dictats
+          .findFirst({
+            where: and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)),
+          })
+          .sync(),
+      );
       if (!row) {
         return yield* new NotFoundError({ message: "Dictat not found" });
       }
@@ -104,7 +112,7 @@ export const DictatServiceLive = Layer.effect(
         createdAt: now,
         updatedAt: now,
       };
-      db.insert(schema.dictats).values(row).run();
+      yield* runDb(() => db.insert(schema.dictats).values(row).run());
       return toApiDictat(row);
     });
 
@@ -118,11 +126,13 @@ export const DictatServiceLive = Layer.effect(
         hiddenIndices?: number[] | undefined;
       },
     ) {
-      const existing = db.query.dictats
-        .findFirst({
-          where: and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)),
-        })
-        .sync();
+      const existing = yield* runDb(() =>
+        db.query.dictats
+          .findFirst({
+            where: and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)),
+          })
+          .sync(),
+      );
       if (!existing) {
         return yield* new NotFoundError({ message: "Dictat not found" });
       }
@@ -134,31 +144,41 @@ export const DictatServiceLive = Layer.effect(
       if (data.hiddenIndices !== undefined)
         updates.hiddenIndices = JSON.stringify(data.hiddenIndices);
 
-      db.update(schema.dictats)
-        .set(updates)
-        .where(and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)))
-        .run();
+      yield* runDb(() =>
+        db
+          .update(schema.dictats)
+          .set(updates)
+          .where(and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)))
+          .run(),
+      );
 
-      const updated = db.query.dictats
-        .findFirst({
-          where: eq(schema.dictats.id, id),
-        })
-        .sync();
+      const updated = yield* runDb(() =>
+        db.query.dictats
+          .findFirst({
+            where: eq(schema.dictats.id, id),
+          })
+          .sync(),
+      );
       return toApiDictat(updated!);
     });
 
     const remove = Effect.fn("Dictat.remove")(function* (id: string, userId: string) {
-      const existing = db.query.dictats
-        .findFirst({
-          where: and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)),
-        })
-        .sync();
+      const existing = yield* runDb(() =>
+        db.query.dictats
+          .findFirst({
+            where: and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)),
+          })
+          .sync(),
+      );
       if (!existing) {
         return yield* new NotFoundError({ message: "Dictat not found" });
       }
-      db.delete(schema.dictats)
-        .where(and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)))
-        .run();
+      yield* runDb(() =>
+        db
+          .delete(schema.dictats)
+          .where(and(eq(schema.dictats.id, id), eq(schema.dictats.userId, userId)))
+          .run(),
+      );
     });
 
     return { list, getById, create, update, remove };

@@ -1,0 +1,17 @@
+www.dictteasy.com {
+    # API requests go to the Bun backend first
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Everything else is the SPA
+    handle {
+        root * /home/deploy/app/packages/client/dist
+        try_files {path} /index.html
+        file_server
+    }
+}
+
+dictteasy.com {
+    redir https://www.dictteasy.com{uri} permanent
+}

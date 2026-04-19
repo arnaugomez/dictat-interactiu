@@ -22,6 +22,10 @@ const errorStatusMap: Record<string, number> = {
   NotFoundError: 404,
   HttpServerError: 400,
   HttpBodyError: 400,
+  DatabaseError: 500,
+  CryptoError: 500,
+  EmailNetworkError: 500,
+  EmailApiError: 500,
 };
 
 export const catchAuthErrors = <A, E, R>(
