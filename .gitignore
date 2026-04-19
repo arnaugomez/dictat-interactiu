@@ -45,3 +45,6 @@ drizzle/meta
 
 # Plan file
 plan.md
+
+# Temporary files
+.tmp/
