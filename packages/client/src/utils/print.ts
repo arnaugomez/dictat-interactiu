@@ -45,7 +45,10 @@ export function doPrint(
 
   let body = `<h1>${disp(dictat.title || "Dictat")}</h1>`;
   if (showText) body += `<h2>Text</h2>` + renderBlock(false);
-  if (showText && showHidden) body += `<div style="page-break-before:always"></div>`;
+  if (showText && showHidden) {
+    body += `<div style="page-break-before:always"></div>`;
+    body += `<h1>${disp(dictat.title || "Dictat")}</h1>`;
+  }
   if (showHidden) body += `<h2>Exercici</h2>` + renderBlock(true);
 
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${dictat.title || "Dictat"}</title>
