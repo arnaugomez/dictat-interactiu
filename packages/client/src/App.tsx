@@ -56,7 +56,7 @@ function AppHeader(props: { onAccount: () => void; onLogout: () => void; userNam
         zIndex: 50,
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: 14,
         padding: "10px 16px",
       }}
     >

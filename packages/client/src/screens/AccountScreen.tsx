@@ -371,6 +371,35 @@ export default function AccountScreen({ onBack }: AccountScreenProps) {
             Eliminar compte
           </button>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={() => {
+            logout();
+            window.history.pushState(null, "", "/");
+            window.dispatchEvent(new PopStateEvent("popstate"));
+          }}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontFamily: F.body,
+            fontSize: 14,
+            fontWeight: 700,
+            color: C.textMuted,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            padding: "16px 0 0",
+            alignSelf: "center",
+            transition: "color 0.2s",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = C.primary)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = C.textMuted)}
+        >
+          <I.logout size={16} /> Tancar sessió
+        </button>
       </div>
 
       {showDeleteModal && (
