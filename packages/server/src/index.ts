@@ -9,6 +9,7 @@ import { DictatServiceLive } from "./services/Dictat.js";
 import { authRoutes } from "./routes/auth.js";
 import { dictatRoutes } from "./routes/dictats.js";
 import { accountRoutes } from "./routes/account.js";
+import { healthRoutes } from "./routes/health.js";
 
 const databaseUrl = process.env.DATABASE_URL || "./data.db";
 const port = Number(process.env.PORT || 3000);
@@ -34,7 +35,7 @@ const optionsRoute = HttpRouter.add(
 );
 
 // All route layers combined
-const routes = Layer.mergeAll(authRoutes, dictatRoutes, accountRoutes, optionsRoute);
+const routes = Layer.mergeAll(authRoutes, dictatRoutes, accountRoutes, optionsRoute, healthRoutes);
 
 // Application
 const app = routes.pipe(HttpRouter.serve);
