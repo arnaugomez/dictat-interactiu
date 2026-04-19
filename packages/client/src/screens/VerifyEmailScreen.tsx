@@ -127,7 +127,11 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
 
             <Btn
               variant="primary"
-              onClick={() => refreshUser()}
+              onClick={() => {
+                window.history.pushState(null, "", "/");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+                refreshUser();
+              }}
               style={{
                 justifyContent: "center",
                 fontFamily: F.display,
