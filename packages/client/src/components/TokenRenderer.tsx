@@ -151,7 +151,7 @@ export default function TokenRenderer({
     >
       {tokens.map((token, i) => {
         if (token.type === "newline")
-          return <div key={i} style={{ flexBasis: "100%", height: fontSize * 0.7 }} />;
+          return <div key={i} style={{ flexBasis: "100%", height: fontSize * 0.35 }} />;
         if (token.type === "space")
           return <span key={i} style={{ display: "inline-block", width: fontSize * 0.35 }} />;
         if (token.type === "punct")
