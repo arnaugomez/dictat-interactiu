@@ -1,12 +1,12 @@
-import { Context, Layer, Effect, Data } from "effect";
+import { Context, Layer, Effect, Schema } from "effect";
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import * as schema from "./schema.js";
 
-export class DatabaseError extends Data.TaggedError("DatabaseError")<{
-  readonly message: string;
-  readonly cause: Error;
-}> {}
+export class DatabaseError extends Schema.TaggedErrorClass<DatabaseError>()("DatabaseError", {
+  message: Schema.String,
+  cause: Schema.Defect,
+}) {}
 
 export const runDb = <T>(fn: () => T): Effect.Effect<T, DatabaseError> =>
   Effect.try({

@@ -1,9 +1,9 @@
-import { Effect, Data } from "effect";
+import { Effect, Schema } from "effect";
 
-export class CryptoError extends Data.TaggedError("CryptoError")<{
-  readonly message: string;
-  readonly cause: Error;
-}> {}
+export class CryptoError extends Schema.TaggedErrorClass<CryptoError>()("CryptoError", {
+  message: Schema.String,
+  cause: Schema.Defect,
+}) {}
 
 export const hashPassword = (password: string) =>
   Effect.tryPromise({

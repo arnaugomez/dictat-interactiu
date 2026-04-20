@@ -1,4 +1,4 @@
-import { Effect, Context, Layer, Data } from "effect";
+import { Effect, Context, Layer, Schema } from "effect";
 import { eq } from "drizzle-orm";
 import { Db, DatabaseError, runDb } from "../db/client.js";
 import * as schema from "../db/schema.js";
@@ -9,13 +9,13 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
 
-export class AuthError extends Data.TaggedError("AuthError")<{
-  readonly message: string;
-}> {}
+export class AuthError extends Schema.TaggedErrorClass<AuthError>()("AuthError", {
+  message: Schema.String,
+}) {}
 
-export class NotFoundError extends Data.TaggedError("NotFoundError")<{
-  readonly message: string;
-}> {}
+export class NotFoundError extends Schema.TaggedErrorClass<NotFoundError>()("NotFoundError", {
+  message: Schema.String,
+}) {}
 
 export class Auth extends Context.Service<
   Auth,

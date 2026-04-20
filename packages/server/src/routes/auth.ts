@@ -8,8 +8,7 @@ import * as schema from "../db/schema.js";
 import * as crypto from "../lib/crypto.js";
 import { requireAuth } from "../middleware/auth.js";
 import { catchAuthErrors } from "../lib/errors.js";
-
-const baseUrl = process.env.BASE_URL || "http://localhost:5173";
+import { AppConfig } from "../config.js";
 const SESSION_COOKIE_OPTIONS = `HttpOnly; SameSite=Lax; Path=/; Max-Age=${30 * 24 * 60 * 60}`;
 
 const setSessionCookie = (response: HttpServerResponse.HttpServerResponse, sessionId: string) =>
@@ -89,7 +88,8 @@ const signup = HttpRouter.add(
 
       const token = yield* auth.generateEmailVerificationToken(id);
       const emailService = yield* Email;
-      yield* emailService.sendVerificationEmail(email.toLowerCase(), token, baseUrl);
+      const config = yield* AppConfig;
+      yield* emailService.sendVerificationEmail(email.toLowerCase(), token, config.baseUrl);
 
       const sessionId = yield* auth.createSession(id);
 
@@ -256,7 +256,8 @@ const resendVerification = HttpRouter.add(
       const auth = yield* Auth;
       const token = yield* auth.generateEmailVerificationToken(user.id);
       const emailService = yield* Email;
-      yield* emailService.sendVerificationEmail(user.email, token, baseUrl);
+      const config = yield* AppConfig;
+      yield* emailService.sendVerificationEmail(user.email, token, config.baseUrl);
 
       return yield* HttpServerResponse.json({ success: true });
     }),
@@ -292,7 +293,8 @@ const forgotPassword = HttpRouter.add(
         const auth = yield* Auth;
         const token = yield* auth.generatePasswordResetToken(user.id);
         const emailService = yield* Email;
-        yield* emailService.sendPasswordResetEmail(user.email, token, baseUrl);
+        const config = yield* AppConfig;
+        yield* emailService.sendPasswordResetEmail(user.email, token, config.baseUrl);
       }
 
       return yield* HttpServerResponse.json({ success: true });

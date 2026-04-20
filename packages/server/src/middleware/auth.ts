@@ -1,16 +1,17 @@
 import { HttpServerRequest } from "effect/unstable/http";
-import { Effect, Data } from "effect";
+import { Effect, Schema } from "effect";
 import { Auth } from "../services/Auth.js";
 import type { DatabaseError } from "../db/client.js";
 import type * as schema from "../db/schema.js";
 
-export class UnauthorizedError extends Data.TaggedError("UnauthorizedError")<{
-  readonly message: string;
-}> {}
+export class UnauthorizedError extends Schema.TaggedErrorClass<UnauthorizedError>()(
+  "UnauthorizedError",
+  { message: Schema.String },
+) {}
 
-export class ForbiddenError extends Data.TaggedError("ForbiddenError")<{
-  readonly message: string;
-}> {}
+export class ForbiddenError extends Schema.TaggedErrorClass<ForbiddenError>()("ForbiddenError", {
+  message: Schema.String,
+}) {}
 
 export interface AuthResult {
   user: typeof schema.users.$inferSelect;
