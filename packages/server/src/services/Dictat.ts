@@ -18,6 +18,10 @@ export class DictatService extends Context.Service<
       id: string,
       userId: string,
     ) => Effect.Effect<DictatType, NotFoundError | DatabaseError>;
+    readonly getPublicById: (
+      id: string,
+      viewerUserId?: string | undefined,
+    ) => Effect.Effect<{ dictat: DictatType; isOwner: boolean }, NotFoundError | DatabaseError>;
     readonly create: (
       userId: string,
       data: {
@@ -35,6 +39,7 @@ export class DictatService extends Context.Service<
         text?: string | undefined;
         config?: DictatType["config"] | undefined;
         hiddenIndices?: number[] | undefined;
+        isPublic?: boolean | undefined;
       },
     ) => Effect.Effect<DictatType, NotFoundError | DatabaseError>;
     readonly remove: (
@@ -55,6 +60,7 @@ export const DictatServiceLive = Layer.effect(
       text: row.text,
       config: Schema.decodeSync(ConfigJson)(row.config),
       hiddenIndices: Schema.decodeSync(HiddenIndicesJson)(row.hiddenIndices),
+      isPublic: row.isPublic,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     });
@@ -84,6 +90,23 @@ export const DictatServiceLive = Layer.effect(
       return toApiDictat(row);
     });
 
+    const getPublicById = Effect.fn("Dictat.getPublicById")(function* (
+      id: string,
+      viewerUserId?: string | undefined,
+    ) {
+      const row = yield* runDb(() =>
+        db.query.dictats
+          .findFirst({
+            where: eq(schema.dictats.id, id),
+          })
+          .sync(),
+      );
+      if (!row || !row.isPublic) {
+        return yield* new NotFoundError({ message: "Dictat not found" });
+      }
+      return { dictat: toApiDictat(row), isOwner: viewerUserId === row.userId };
+    });
+
     const create = Effect.fn("Dictat.create")(function* (
       userId: string,
       data: {
@@ -91,6 +114,7 @@ export const DictatServiceLive = Layer.effect(
         title?: string | undefined;
         config?: DictatType["config"] | undefined;
         hiddenIndices?: number[] | undefined;
+        isPublic?: boolean | undefined;
       },
     ) {
       const id = yield* crypto.generateId();
@@ -113,6 +137,7 @@ export const DictatServiceLive = Layer.effect(
         text: data.text,
         config: Schema.encodeSync(ConfigJson)(data.config || defaultConfig),
         hiddenIndices: Schema.encodeSync(HiddenIndicesJson)(data.hiddenIndices || []),
+        isPublic: false,
         createdAt: now,
         updatedAt: now,
       };
@@ -128,6 +153,7 @@ export const DictatServiceLive = Layer.effect(
         text?: string | undefined;
         config?: DictatType["config"] | undefined;
         hiddenIndices?: number[] | undefined;
+        isPublic?: boolean | undefined;
       },
     ) {
       const existing = yield* runDb(() =>
@@ -147,6 +173,7 @@ export const DictatServiceLive = Layer.effect(
       if (data.config !== undefined) updates.config = Schema.encodeSync(ConfigJson)(data.config);
       if (data.hiddenIndices !== undefined)
         updates.hiddenIndices = Schema.encodeSync(HiddenIndicesJson)(data.hiddenIndices);
+      if (data.isPublic !== undefined) updates.isPublic = data.isPublic;
 
       yield* runDb(() =>
         db
@@ -163,7 +190,10 @@ export const DictatServiceLive = Layer.effect(
           })
           .sync(),
       );
-      return toApiDictat(updated!);
+      if (!updated) {
+        return yield* new NotFoundError({ message: "Dictat not found" });
+      }
+      return toApiDictat(updated);
     });
 
     const remove = Effect.fn("Dictat.remove")(function* (id: string, userId: string) {
@@ -185,6 +215,6 @@ export const DictatServiceLive = Layer.effect(
       );
     });
 
-    return { list, getById, create, update, remove };
+    return { list, getById, getPublicById, create, update, remove };
   }),
 );

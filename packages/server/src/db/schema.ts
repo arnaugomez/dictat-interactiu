@@ -43,6 +43,7 @@ export const dictats = sqliteTable("dictats", {
   text: text("text").notNull(),
   config: text("config").notNull(), // JSON blob
   hiddenIndices: text("hidden_indices").notNull(), // JSON array
+  isPublic: integer("is_public", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at").notNull(),
   updatedAt: integer("updated_at").notNull(),
 });

@@ -110,6 +110,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label
+                htmlFor="signup-name"
                 style={{
                   fontFamily: F.body,
                   fontSize: 13,
@@ -120,6 +121,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
                 Nom
               </label>
               <input
+                id="signup-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -144,6 +146,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label
+                htmlFor="signup-email"
                 style={{
                   fontFamily: F.body,
                   fontSize: 13,
@@ -154,6 +157,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
                 Correu electrònic
               </label>
               <input
+                id="signup-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -178,6 +182,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label
+                htmlFor="signup-password"
                 style={{
                   fontFamily: F.body,
                   fontSize: 13,
@@ -188,6 +193,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
                 Contrasenya
               </label>
               <PasswordInput
+                id="signup-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -198,6 +204,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label
+                htmlFor="signup-confirm-password"
                 style={{
                   fontFamily: F.body,
                   fontSize: 13,
@@ -208,6 +215,7 @@ export default function SignupScreen({ onNavigate }: SignupScreenProps) {
                 Confirma la contrasenya
               </label>
               <PasswordInput
+                id="signup-confirm-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required

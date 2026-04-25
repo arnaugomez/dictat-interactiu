@@ -30,6 +30,7 @@
         "oxlint": "^1.60.0",
         "typescript": "^6.0.3",
         "vite": "^8.0.4",
+        "vitest": "4.1.4",
       },
     },
     "packages/server": {

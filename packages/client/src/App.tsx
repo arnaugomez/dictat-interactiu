@@ -22,6 +22,8 @@ function parseRoute(): { path: string; id: string | null } {
   if (editMatch) return { path: "/edit", id: editMatch[1] };
   const practiceMatch = pathname.match(/^\/practice\/(.+)$/);
   if (practiceMatch) return { path: "/practice", id: practiceMatch[1] };
+  const publicPracticeMatch = pathname.match(/^\/public\/practice\/(.+)$/);
+  if (publicPracticeMatch) return { path: "/public/practice", id: publicPracticeMatch[1] };
   return { path: pathname || "/", id: null };
 }
 
@@ -135,6 +137,22 @@ export default function App() {
       <>
         <GlobalStyles />
         <LoadingScreen />
+      </>
+    );
+  }
+
+  if (route.path === "/public/practice" && route.id !== null) {
+    const backProps =
+      isAuthenticated && isVerified ? { onBack: () => nav.edit(route.id ?? "") } : {};
+    return (
+      <>
+        <GlobalStyles />
+        <PracticeScreen
+          key={`${route.id}_public`}
+          dictatId={route.id}
+          mode="public"
+          {...backProps}
+        />
       </>
     );
   }

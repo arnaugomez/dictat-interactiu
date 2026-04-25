@@ -98,6 +98,7 @@ export default function LoginScreen({ onNavigate }: LoginScreenProps) {
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label
+                htmlFor="login-email"
                 style={{
                   fontFamily: F.body,
                   fontSize: 13,
@@ -108,6 +109,7 @@ export default function LoginScreen({ onNavigate }: LoginScreenProps) {
                 Correu electrònic
               </label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -132,6 +134,7 @@ export default function LoginScreen({ onNavigate }: LoginScreenProps) {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label
+                htmlFor="login-password"
                 style={{
                   fontFamily: F.body,
                   fontSize: 13,
@@ -142,6 +145,7 @@ export default function LoginScreen({ onNavigate }: LoginScreenProps) {
                 Contrasenya
               </label>
               <PasswordInput
+                id="login-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

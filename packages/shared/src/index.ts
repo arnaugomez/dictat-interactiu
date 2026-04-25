@@ -1,12 +1,14 @@
 export {
   DictatConfig,
   Dictat,
+  PublicDictat,
   CreateDictatRequest,
   UpdateDictatRequest,
 } from "./schemas/dictat.js";
 export type {
   DictatConfig as DictatConfigType,
   Dictat as DictatType,
+  PublicDictat as PublicDictatType,
   CreateDictatRequest as CreateDictatRequestType,
   UpdateDictatRequest as UpdateDictatRequestType,
 } from "./schemas/dictat.js";

@@ -1,18 +1,31 @@
 import type { Page } from "@playwright/test";
-import { Database } from "bun:sqlite";
+import { execFileSync } from "node:child_process";
 
 const SERVER_URL = "http://localhost:3000";
 const DB_PATH = "../server/test.db";
 
 function getVerificationToken(dbPath: string, email: string): string {
-  const db = new Database(dbPath);
-  const row = db
-    .query(
-      "SELECT evt.id FROM email_verification_tokens evt JOIN users u ON evt.user_id = u.id WHERE u.email = ?",
-    )
-    .get(email);
-  db.close();
-  return (row as { id: string }).id;
+  // Playwright runs this helper in Node, but the test DB uses Bun's sqlite driver.
+  // Run a tiny Bun script so the Bun-only "bun:sqlite" import stays out of Node.
+  const script = `
+    import { Database } from "bun:sqlite";
+
+    const db = new Database(process.argv[1]);
+    const row = db
+      .query("SELECT evt.id FROM email_verification_tokens evt JOIN users u ON evt.user_id = u.id WHERE u.email = ?")
+      .get(process.argv[2]);
+    db.close();
+
+    if (!row) {
+      process.exit(1);
+    }
+
+    console.log(JSON.stringify(row));
+  `;
+  const output = execFileSync("bun", ["--eval", script, dbPath, email], {
+    encoding: "utf8",
+  });
+  return (JSON.parse(output) as { id: string }).id;
 }
 
 export interface AuthParams {
@@ -77,7 +90,10 @@ export async function signupAndLogin(page: Page, params: AuthParams): Promise<vo
   await page.reload();
 }
 
-export async function loginViaApi(page: Page, params: { email: string; password: string }): Promise<void> {
+export async function loginViaApi(
+  page: Page,
+  params: { email: string; password: string },
+): Promise<void> {
   const { email, password } = params;
 
   const loginRes = await fetch(`${SERVER_URL}/api/auth/login`, {

@@ -88,10 +88,13 @@ export const Btn = ({ children, variant = "ghost", color, style, ...props }: Btn
 interface ToggleProps {
   value: boolean;
   onChange: (v: boolean) => void;
+  ariaLabel?: string;
 }
 
-export const Toggle = ({ value, onChange }: ToggleProps) => (
+export const Toggle = ({ value, onChange, ariaLabel }: ToggleProps) => (
   <button
+    aria-label={ariaLabel}
+    aria-pressed={value}
     onClick={() => onChange(!value)}
     style={{
       width: 48,

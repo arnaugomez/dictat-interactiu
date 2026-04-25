@@ -11,6 +11,7 @@ export interface Dictat {
   text: string;
   config: DictatConfig;
   hiddenIndices: number[];
+  isPublic: boolean;
   createdAt: number;
   updatedAt: number;
 }

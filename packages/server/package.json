@@ -15,7 +15,7 @@
     "format:check": "oxfmt --check src",
     "check": "tsc --noEmit && oxlint src && oxfmt --check src",
     "fix": "oxlint --fix src && oxfmt --write src",
-    "test": "vitest run --passWithNoTests",
+    "test": "bunx --bun vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {

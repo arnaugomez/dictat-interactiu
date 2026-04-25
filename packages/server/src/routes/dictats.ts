@@ -3,6 +3,7 @@ import { Effect, Layer } from "effect";
 import { DictatService } from "../services/Dictat.js";
 import { NotFoundError } from "../services/Auth.js";
 import { requireVerifiedAuth } from "../middleware/auth.js";
+import { Auth } from "../services/Auth.js";
 import { catchAuthErrors } from "../lib/errors.js";
 
 const requireParam = (params: Record<string, string | undefined>, name: string) =>
@@ -38,6 +39,28 @@ const getDictat = HttpRouter.add(
       const dictatService = yield* DictatService;
       const dictat = yield* dictatService.getById(id, user.id);
       return yield* HttpServerResponse.json({ dictat });
+    }),
+  ),
+);
+
+const getPublicDictat = HttpRouter.add(
+  "GET",
+  "/api/public/dictats/:id",
+  catchAuthErrors(
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const params = yield* HttpRouter.params;
+      const id = yield* requireParam(params, "id");
+      const auth = yield* Auth;
+      const viewer = request.cookies["session"]
+        ? yield* auth.validateSession(request.cookies["session"]).pipe(
+            Effect.map(({ user }) => user.id),
+            Effect.catch(() => Effect.sync((): string | undefined => undefined)),
+          )
+        : undefined;
+      const dictatService = yield* DictatService;
+      const result = yield* dictatService.getPublicById(id, viewer);
+      return yield* HttpServerResponse.json(result);
     }),
   ),
 );
@@ -89,6 +112,7 @@ const updateDictat = HttpRouter.add(
         text?: string;
         config?: { lletraPal: boolean; fontSize: number; hidePct: number; fontType: string };
         hiddenIndices?: number[];
+        isPublic?: boolean;
       };
 
       const dictatService = yield* DictatService;
@@ -97,6 +121,7 @@ const updateDictat = HttpRouter.add(
         text: body.text,
         config: body.config as any,
         hiddenIndices: body.hiddenIndices,
+        isPublic: body.isPublic,
       });
       return yield* HttpServerResponse.json({ dictat });
     }),
@@ -121,6 +146,7 @@ const deleteDictat = HttpRouter.add(
 export const dictatRoutes = Layer.mergeAll(
   listDictats,
   getDictat,
+  getPublicDictat,
   createDictat,
   updateDictat,
   deleteDictat,
