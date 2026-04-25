@@ -36,7 +36,14 @@ export async function enablePublicLink(page: Page): Promise<string> {
   const linkInput = page.getByRole("textbox", { name: "Enllaç públic" });
   const publicUrl = await linkInput.inputValue();
   await expect(page.getByRole("button", { name: "Copiar" })).toBeDisabled();
+  const sharingEnabled = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      /\/api\/dictats\/[^/]+$/.test(new URL(response.url()).pathname) &&
+      response.ok(),
+  );
   await page.getByRole("button", { name: "Activar enllaç públic" }).click();
+  await sharingEnabled;
   await expect(page.getByRole("button", { name: "Copiar" })).toBeEnabled();
   return publicUrl;
 }
