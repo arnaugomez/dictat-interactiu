@@ -68,6 +68,7 @@ export function renderPracticeResultsPrintHtml(options: RenderPracticeResultsPri
   const ll = options.dictat.config.lletraPal;
   const ft = options.dictat.config.fontType || "impremta";
   const ffam = ft === "lligada" ? "'Playwrite PE', cursive" : "'Nunito', sans-serif";
+  const strikeTop = ft === "lligada" ? "58%" : "50%";
   const display = (value: string) => (ll ? toUpper(value) : value);
   const title = escapeHtml(display(options.dictat.title || "Dictat"));
 
@@ -79,12 +80,15 @@ export function renderPracticeResultsPrintHtml(options: RenderPracticeResultsPri
       if (token.type === "word" && options.hiddenSet.has(index)) {
         const expected = display(token.value);
         const rawAnswer = options.answers[index]?.trim() ?? "";
-        const answer = rawAnswer === "" ? "Sense resposta" : display(rawAnswer);
         const isCorrect = options.results.details[index] ?? false;
         if (isCorrect) {
-          return `<span class="answer correct">${escapeHtml(answer)}</span>`;
+          return `<span class="answer correct">${escapeHtml(display(rawAnswer))}</span>`;
         }
-        return `<span class="answer wrong"><span class="student">${escapeHtml(answer)}</span><span class="correction">${escapeHtml(expected)}</span></span>`;
+        if (rawAnswer === "") {
+          return `<span class="answer wrong"><span class="correction">${escapeHtml(expected)}</span></span>`;
+        }
+        const studentAnswer = display(rawAnswer);
+        return `<span class="answer wrong"><span class="student">${escapeHtml(studentAnswer)}</span><span class="correction">${escapeHtml(expected)}</span></span>`;
       }
       return `<span>${escapeHtml(display(token.value))}</span>`;
     })
@@ -98,11 +102,12 @@ body{font-family:${ffam};font-size:${fs}px;line-height:2.4;color:#000;padding:20
 .wrap{display:flex;flex-wrap:wrap;align-items:baseline}
 .sp{display:inline-block;width:0.35em}
 .nl{display:block;height:${fs * 0.7}px;flex-basis:100%}
-.answer{display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-end;border-radius:4px;padding:0 4px;margin:2px 1px;line-height:1.25}
+.answer{display:inline-flex;flex-direction:row;align-items:baseline;gap:0.4em;border-radius:4px;padding:0 4px;margin:2px 1px}
 .correct{border-bottom:2px solid #2E7D32}
-.wrong{border:2px solid #C62828}
-.student{color:#C62828;text-decoration:line-through;font-size:0.85em}
-.correction{color:#000;font-weight:700}
+.wrong{border:2px solid #C62828;padding:0 6px}
+.student{position:relative;color:#C62828}
+.student::after{content:"";position:absolute;left:-2px;right:-2px;top:${strikeTop};border-top:0.1em solid #C62828;transform:translateY(-50%);pointer-events:none}
+.correction{color:#2E7D32;font-weight:700}
 h1{font-family:'Fredoka',sans-serif;font-size:1.3em;text-align:center;margin-bottom:8px}
 .score{font-family:'Fredoka',sans-serif;text-align:center;font-weight:700;margin-bottom:18px}
 </style></head><body><h1>${title}</h1><div class="score">${options.results.correct} / ${options.results.total} correctes</div><div class="wrap">${body}</div></body></html>`;

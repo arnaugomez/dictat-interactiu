@@ -49,7 +49,7 @@ describe("renderPracticeResultsPrintHtml", () => {
     expect(html).toContain('class="answer wrong"');
   });
 
-  it("renders missing answers distinctly", () => {
+  it("renders missing answers as the correct answer without a strikethrough", () => {
     const tokens = tokenize(dictat.text);
     const html = renderPracticeResultsPrintHtml({
       dictat,
@@ -59,7 +59,11 @@ describe("renderPracticeResultsPrintHtml", () => {
       results: { correct: 0, total: 2, details: { 2: false, 6: false } },
     });
 
-    expect(html).toContain("Sense resposta");
+    expect(html).not.toContain("Sense resposta");
+    expect(html).toContain('<span class="answer wrong"><span class="correction">gat</span></span>');
+    expect(html).toContain(
+      '<span class="answer wrong"><span class="correction">peix</span></span>',
+    );
   });
 
   it("escapes user-provided text", () => {
