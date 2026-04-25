@@ -143,4 +143,9 @@ export const I: Record<string, (p?: IcProps) => ReactElement> = {
       <line x1="21" y1="12" x2="9" y2="12" />
     </Ic>
   ),
+  home: (p) => (
+    <Ic {...p}>
+      <path d="M3 11l9-8 9 8v10a2 2 0 01-2 2h-4v-7H9v7H5a2 2 0 01-2-2V11z" />
+    </Ic>
+  ),
 };

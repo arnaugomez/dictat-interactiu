@@ -3,6 +3,7 @@ import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
 import { FloatingDeco, Btn, Toggle, ConfirmModal, Toast, Dropdown } from "../components/ui";
+import NotFoundView from "../components/NotFoundView";
 import TokenRenderer from "../components/TokenRenderer";
 import { getDictat, updateDictat } from "../api/dictats";
 import type { Dictat, DictatConfig } from "../data/types";
@@ -179,24 +180,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
 
   if (error || !dictat) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: C.bg,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 16,
-        }}
-      >
-        <div style={{ fontFamily: F.body, fontSize: 16, color: C.error }}>
-          {error ?? "Dictat no trobat."}
-        </div>
-        <Btn variant="ghost" onClick={onBack} style={{ padding: "8px 14px", fontSize: 13 }}>
-          <I.back size={18} /> Tornar
-        </Btn>
-      </div>
+      <NotFoundView message={error ?? "Dictat no trobat."} onBack={onBack} backLabel="Llistat" />
     );
   }
 
