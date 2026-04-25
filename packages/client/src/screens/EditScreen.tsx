@@ -9,6 +9,7 @@ import type { Dictat, DictatConfig } from "../data/types";
 import { randomExample } from "../data/examples";
 import { tokenize, computeHiddenIndices } from "../utils/tokenizer";
 import { doPrint } from "../utils/print";
+import { buildPublicDictatUrl } from "../utils/share";
 
 interface EditScreenProps {
   dictatId: string;
@@ -23,6 +24,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
   const [error, setError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [sliderPct, setSliderPct] = useState(100);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -49,7 +51,13 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
   }, [dictatId]);
 
   const debouncedSave = useCallback(
-    (patch: { title?: string; text?: string; config?: DictatConfig; hiddenIndices?: number[] }) => {
+    (patch: {
+      title?: string;
+      text?: string;
+      config?: DictatConfig;
+      hiddenIndices?: number[];
+      isPublic?: boolean;
+    }) => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
         void updateDictat(dictatId, patch);
@@ -137,6 +145,17 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
     save({ title });
     setEditingTitle(false);
   };
+
+  const setPublicSharing = useCallback(
+    (isPublic: boolean) => {
+      setDictat((prev) => {
+        if (!prev) return prev;
+        return { ...prev, isPublic };
+      });
+      void updateDictat(dictatId, { isPublic });
+    },
+    [dictatId],
+  );
 
   useEffect(() => {
     if (editingTitle && titleRef.current) titleRef.current.focus();
@@ -290,6 +309,14 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
         </div>
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <Btn
+            variant="soft"
+            color={C.accentDark}
+            onClick={() => setShowShareModal(true)}
+            style={{ padding: "8px 14px", fontSize: 13 }}
+          >
+            <I.logout size={16} /> <span className="btn-label">Compartir</span>
+          </Btn>
           <Btn
             variant="ghost"
             onClick={() => setToast("Guardat!")}
@@ -723,7 +750,160 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
           onCancel={() => setShowDeleteModal(false)}
         />
       )}
+      {showShareModal && dictat && (
+        <ShareModal
+          dictat={dictat}
+          publicUrl={buildPublicDictatUrl({ origin: window.location.origin, dictatId: dictat.id })}
+          onToggle={setPublicSharing}
+          onClose={() => setShowShareModal(false)}
+          onCopied={() => setToast("Enllaç copiat!")}
+        />
+      )}
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
+    </div>
+  );
+}
+
+interface ShareModalProps {
+  dictat: Dictat;
+  publicUrl: string;
+  onToggle: (isPublic: boolean) => void;
+  onClose: () => void;
+  onCopied: () => void;
+}
+
+function ShareModal({ dictat, publicUrl, onToggle, onClose, onCopied }: ShareModalProps) {
+  const copyLink = async () => {
+    if (!dictat.isPublic) return;
+    await navigator.clipboard.writeText(publicUrl);
+    onCopied();
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Compartir dictat"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        background: "rgba(45,48,71,0.35)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: C.card,
+          borderRadius: 18,
+          padding: 24,
+          boxShadow: C.shadowLg,
+          maxWidth: 460,
+          width: "100%",
+          border: `1px solid ${C.borderLight}`,
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            marginBottom: 18,
+          }}
+        >
+          <div>
+            <h2
+              style={{
+                fontFamily: F.display,
+                fontSize: 20,
+                margin: 0,
+                color: C.text,
+              }}
+            >
+              Compartir dictat
+            </h2>
+            <p style={{ fontFamily: F.body, fontSize: 13, color: C.textMuted, margin: "4px 0 0" }}>
+              Activa l'enllaç públic per practicar.
+            </p>
+          </div>
+          <button
+            aria-label="Tancar"
+            onClick={onClose}
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              fontFamily: F.body,
+              fontSize: 24,
+              lineHeight: 1,
+              color: C.textMuted,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 0",
+            borderTop: `1px solid ${C.borderLight}`,
+            borderBottom: `1px solid ${C.borderLight}`,
+          }}
+        >
+          <div>
+            <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 800, color: C.text }}>
+              Enllaç públic
+            </div>
+            <div style={{ fontFamily: F.body, fontSize: 12, color: C.textMuted }}>
+              {dictat.isPublic ? "Qualsevol persona amb l'enllaç pot practicar." : "Privat"}
+            </div>
+          </div>
+          <Toggle ariaLabel="Activar enllaç públic" value={dictat.isPublic} onChange={onToggle} />
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <input
+            readOnly
+            aria-label="Enllaç públic"
+            value={publicUrl}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              border: `1.5px solid ${C.border}`,
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontFamily: F.body,
+              fontSize: 13,
+              color: dictat.isPublic ? C.text : C.textMuted,
+              opacity: dictat.isPublic ? 1 : 0.55,
+              background: dictat.isPublic ? C.card : C.bg,
+            }}
+          />
+          <Btn
+            variant="secondary"
+            disabled={!dictat.isPublic}
+            onClick={() => void copyLink()}
+            style={{
+              padding: "10px 14px",
+              opacity: dictat.isPublic ? 1 : 0.5,
+              cursor: dictat.isPublic ? "pointer" : "not-allowed",
+            }}
+          >
+            Copiar
+          </Btn>
+        </div>
+      </div>
     </div>
   );
 }

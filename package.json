@@ -11,6 +11,7 @@
     "fix": "turbo fix",
     "test": "turbo test",
     "test:e2e": "turbo test:e2e",
+    "test:e2e:ui": "turbo test:e2e:ui --filter=@dictat/client",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {

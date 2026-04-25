@@ -1,0 +1,4 @@
+interface:
+  display_name: "PRD To Issues"
+  short_description: "Break a PRD into implementation issues"
+  default_prompt: "Use $prd-to-issues to convert this PRD into vertical-slice GitHub issues."

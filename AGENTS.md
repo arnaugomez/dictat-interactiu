@@ -6,7 +6,7 @@ Strictly follow the linter, formatter and type checker, ensuring there are 0 iss
 
 To auto-fix linting and formatting issues, run `bun run fix`
 
-There are also end-to-end tests, run them with `bun run test:e2e`
+There are also end-to-end tests, you can run them with `bun run test:e2e`
 
 ### Creating tests
 

@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit && oxlint src && oxfmt --check src",
     "fix": "oxlint --fix src && oxfmt --write src",
-    "test:e2e": "playwright test"
+    "test": "bunx --bun vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@dictat/shared": "workspace:*",
@@ -30,6 +32,7 @@
     "oxfmt": "^0.45.0",
     "oxlint": "^1.60.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.4"
+    "vite": "^8.0.4",
+    "vitest": "4.1.4"
   }
 }

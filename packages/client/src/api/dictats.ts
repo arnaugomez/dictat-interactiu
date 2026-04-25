@@ -9,6 +9,11 @@ interface DictatResponse {
   dictat: Dictat;
 }
 
+interface PublicDictatResponse {
+  dictat: Dictat;
+  isOwner: boolean;
+}
+
 interface SuccessResponse {
   success: boolean;
 }
@@ -19,6 +24,10 @@ export function listDictats(): Promise<DictatsListResponse> {
 
 export function getDictat(id: string): Promise<DictatResponse> {
   return api.get<DictatResponse>(`/dictats/${id}`);
+}
+
+export function getPublicDictat(id: string): Promise<PublicDictatResponse> {
+  return api.get<PublicDictatResponse>(`/public/dictats/${id}`);
 }
 
 export function createDictat(params: {
@@ -37,6 +46,7 @@ export function updateDictat(
     text?: string;
     config?: DictatConfig;
     hiddenIndices?: number[];
+    isPublic?: boolean;
   },
 ): Promise<DictatResponse> {
   return api.put<DictatResponse>(`/dictats/${id}`, params);

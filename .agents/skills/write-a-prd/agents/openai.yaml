@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write A PRD"
+  short_description: "Create a product requirements document"
+  default_prompt: "Use $write-a-prd to interview me and draft a GitHub issue PRD."

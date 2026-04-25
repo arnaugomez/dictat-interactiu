@@ -14,10 +14,17 @@ export const Dictat = Schema.Struct({
   text: Schema.String,
   config: DictatConfig,
   hiddenIndices: Schema.Array(Schema.Number),
+  isPublic: Schema.Boolean,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
 });
 export type Dictat = typeof Dictat.Type;
+
+export const PublicDictat = Schema.Struct({
+  dictat: Dictat,
+  isOwner: Schema.Boolean,
+});
+export type PublicDictat = typeof PublicDictat.Type;
 
 export const CreateDictatRequest = Schema.Struct({
   text: Schema.String,
@@ -32,5 +39,6 @@ export const UpdateDictatRequest = Schema.Struct({
   text: Schema.optional(Schema.String),
   config: Schema.optional(DictatConfig),
   hiddenIndices: Schema.optional(Schema.Array(Schema.Number)),
+  isPublic: Schema.optional(Schema.Boolean),
 });
 export type UpdateDictatRequest = typeof UpdateDictatRequest.Type;
