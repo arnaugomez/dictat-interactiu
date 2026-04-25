@@ -28,7 +28,7 @@ export class DictatService extends Context.Service<
         text: string;
         title?: string | undefined;
         config?: DictatType["config"] | undefined;
-        hiddenIndices?: number[] | undefined;
+        hiddenIndices?: ReadonlyArray<number> | undefined;
       },
     ) => Effect.Effect<DictatType, DatabaseError>;
     readonly update: (
@@ -38,7 +38,7 @@ export class DictatService extends Context.Service<
         title?: string | undefined;
         text?: string | undefined;
         config?: DictatType["config"] | undefined;
-        hiddenIndices?: number[] | undefined;
+        hiddenIndices?: ReadonlyArray<number> | undefined;
         isPublic?: boolean | undefined;
       },
     ) => Effect.Effect<DictatType, NotFoundError | DatabaseError>;
@@ -113,7 +113,7 @@ export const DictatServiceLive = Layer.effect(
         text: string;
         title?: string | undefined;
         config?: DictatType["config"] | undefined;
-        hiddenIndices?: number[] | undefined;
+        hiddenIndices?: ReadonlyArray<number> | undefined;
         isPublic?: boolean | undefined;
       },
     ) {
@@ -152,7 +152,7 @@ export const DictatServiceLive = Layer.effect(
         title?: string | undefined;
         text?: string | undefined;
         config?: DictatType["config"] | undefined;
-        hiddenIndices?: number[] | undefined;
+        hiddenIndices?: ReadonlyArray<number> | undefined;
         isPublic?: boolean | undefined;
       },
     ) {

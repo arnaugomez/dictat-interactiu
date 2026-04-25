@@ -19,6 +19,7 @@ const errorStatusMap: Record<string, number> = {
   UnauthorizedError: 401,
   ForbiddenError: 403,
   NotFoundError: 404,
+  SchemaError: 400,
   HttpServerError: 400,
   HttpBodyError: 400,
   DatabaseError: 500,

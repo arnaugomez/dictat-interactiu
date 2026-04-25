@@ -39,6 +39,19 @@ test.describe("Dictats", () => {
     await expect(page.locator('[title="Editar"]').first()).toBeVisible({ timeout: 10000 });
   });
 
+  test("clicking Nou creates an empty dictat and navigates to edit screen", async ({ page }) => {
+    const email = uniqueEmail();
+    await signupAndLogin(page, { email, password: "password123" });
+
+    await page.goto("/list");
+    await expect(page.getByText("Els meus dictats")).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole("button", { name: "Nou" }).click();
+
+    await page.waitForURL(/\/edit\/[^/]+$/, { timeout: 10000 });
+    await expect(page.getByPlaceholder("Escriu aquí el text del dictat...")).toHaveValue("");
+  });
+
   test("delete dictat removes it from list", async ({ page }) => {
     const email = uniqueEmail();
     await signupAndLogin(page, { email, password: "password123" });

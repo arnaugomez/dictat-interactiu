@@ -5,6 +5,7 @@ import { NotFoundError } from "../services/Auth.js";
 import { requireVerifiedAuth } from "../middleware/auth.js";
 import { Auth } from "../services/Auth.js";
 import { catchAuthErrors } from "../lib/errors.js";
+import { CreateDictatRequest, UpdateDictatRequest } from "@dictat/shared";
 
 const requireParam = (params: Record<string, string | undefined>, name: string) =>
   Effect.gen(function* () {
@@ -71,20 +72,7 @@ const createDictat = HttpRouter.add(
   catchAuthErrors(
     Effect.gen(function* () {
       const { user } = yield* requireVerifiedAuth;
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as {
-        text: string;
-        title?: string;
-        config?: { lletraPal: boolean; fontSize: number; hidePct: number; fontType: string };
-        hiddenIndices?: number[];
-      };
-
-      if (!body.text) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Text is required" },
-          { status: 400 },
-        );
-      }
+      const body = yield* HttpServerRequest.schemaBodyJson(CreateDictatRequest);
 
       const dictatService = yield* DictatService;
       const dictat = yield* dictatService.create(user.id, {
@@ -106,14 +94,7 @@ const updateDictat = HttpRouter.add(
       const { user } = yield* requireVerifiedAuth;
       const params = yield* HttpRouter.params;
       const id = yield* requireParam(params, "id");
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as {
-        title?: string;
-        text?: string;
-        config?: { lletraPal: boolean; fontSize: number; hidePct: number; fontType: string };
-        hiddenIndices?: number[];
-        isPublic?: boolean;
-      };
+      const body = yield* HttpServerRequest.schemaBodyJson(UpdateDictatRequest);
 
       const dictatService = yield* DictatService;
       const dictat = yield* dictatService.update(id, user.id, {
