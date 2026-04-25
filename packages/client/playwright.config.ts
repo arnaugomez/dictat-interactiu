@@ -20,7 +20,7 @@ export default defineConfig({
   webServer: [
     {
       command: "cd ../server && DATABASE_URL=./test.db bun run src/index.ts",
-      url: "http://localhost:3000",
+      url: "http://localhost:3000/api/health",
       reuseExistingServer: true,
       timeout: 30000,
     },

@@ -55,7 +55,9 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: "Sortir" }).click();
 
     // Should be redirected to login page
-    await expect(page.getByText("Iniciar sessió")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: "Iniciar sessió" })).toBeVisible({
+      timeout: 10000,
+    });
     await expect(page.getByRole("button", { name: "Iniciar sessió" })).toBeVisible();
   });
 });

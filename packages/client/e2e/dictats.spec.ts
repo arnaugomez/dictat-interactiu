@@ -16,7 +16,7 @@ test.describe("Dictats", () => {
     await page.getByRole("button", { name: "Crea el dictat 🚀" }).click();
 
     // Should navigate to edit screen
-    await expect(page.url()).toContain("/edit/", { timeout: 10000 });
+    await page.waitForURL(/\/edit\//, { timeout: 10000 });
   });
 
   test("navigate to list and see created dictat", async ({ page }) => {
@@ -29,7 +29,7 @@ test.describe("Dictats", () => {
     await page.getByRole("button", { name: "Crea el dictat 🚀" }).click();
 
     // Wait for edit screen
-    await expect(page.url()).toContain("/edit/", { timeout: 10000 });
+    await page.waitForURL(/\/edit\//, { timeout: 10000 });
 
     // Navigate to list
     await page.goto("/list");
@@ -49,7 +49,7 @@ test.describe("Dictats", () => {
     await page.getByRole("button", { name: "Crea el dictat 🚀" }).click();
 
     // Wait for edit screen
-    await expect(page.url()).toContain("/edit/", { timeout: 10000 });
+    await page.waitForURL(/\/edit\//, { timeout: 10000 });
 
     // Navigate to list
     await page.goto("/list");
@@ -64,7 +64,7 @@ test.describe("Dictats", () => {
 
     // Confirm delete in modal
     await expect(page.getByText("Aquesta acció no es pot desfer.")).toBeVisible({ timeout: 5000 });
-    await page.getByRole("button", { name: "Eliminar" }).click();
+    await page.getByText("Eliminar", { exact: true }).click();
 
     // Should show empty state or fewer dictats
     await expect(page.getByText("Encara no tens cap dictat guardat.")).toBeVisible({
