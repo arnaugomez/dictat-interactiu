@@ -10,7 +10,7 @@ export interface Dictat {
   title: string;
   text: string;
   config: DictatConfig;
-  hiddenIndices: number[];
+  hiddenIndices: ReadonlyArray<number>;
   isPublic: boolean;
   createdAt: number;
   updatedAt: number;

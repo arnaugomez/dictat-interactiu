@@ -1,16 +1,30 @@
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
-import { Effect, Layer } from "effect";
+import { HttpBody, HttpServerResponse } from "effect/unstable/http";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { Effect } from "effect";
 import { eq } from "drizzle-orm";
+import {
+  Api,
+  BadRequestResponse,
+  ConflictResponse,
+  InternalErrorResponse,
+  UnauthorizedResponse,
+} from "@dictat/shared";
 import { Auth } from "../services/Auth.js";
 import { Email } from "../services/Email.js";
 import { Db, runDb } from "../db/client.js";
+import type { DatabaseError } from "../db/client.js";
 import * as schema from "../db/schema.js";
 import * as crypto from "../lib/crypto.js";
+import type { CryptoError } from "../lib/crypto.js";
 import { requireAuth } from "../middleware/auth.js";
-import { catchAuthErrors } from "../lib/errors.js";
+import type { UnauthorizedError } from "../middleware/auth.js";
 import { AppConfig } from "../config.js";
+import type { EmailApiError, EmailNetworkError } from "../services/Email.js";
+
+/** Session cookie attributes shared by login and signup responses. */
 const SESSION_COOKIE_OPTIONS = `HttpOnly; SameSite=Lax; Path=/; Max-Age=${30 * 24 * 60 * 60}`;
 
+/** Adds a session cookie to an HTTP response. */
 const setSessionCookie = (response: HttpServerResponse.HttpServerResponse, sessionId: string) =>
   HttpServerResponse.setHeader(
     response,
@@ -18,6 +32,7 @@ const setSessionCookie = (response: HttpServerResponse.HttpServerResponse, sessi
     `session=${sessionId}; ${SESSION_COOKIE_OPTIONS}`,
   );
 
+/** Clears the session cookie on an HTTP response. */
 const clearSessionCookie = (response: HttpServerResponse.HttpServerResponse) =>
   HttpServerResponse.setHeader(
     response,
@@ -25,341 +40,293 @@ const clearSessionCookie = (response: HttpServerResponse.HttpServerResponse) =>
     `session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`,
   );
 
-const signup = HttpRouter.add(
-  "POST",
-  "/api/auth/signup",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as {
-        name: string;
-        email: string;
-        password: string;
-      };
-      const { name, email, password } = body;
+/** Converts database and infrastructure failures into typed API failures. */
+type AuthRouteError =
+  | BadRequestResponse
+  | ConflictResponse
+  | CryptoError
+  | DatabaseError
+  | EmailApiError
+  | EmailNetworkError
+  | HttpBody.HttpBodyError
+  | UnauthorizedError
+  | UnauthorizedResponse;
 
-      if (!name || !email || !password) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Name, email and password are required" },
-          { status: 400 },
-        );
-      }
-      if (password.length < 8) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Password must be at least 8 characters" },
-          { status: 400 },
-        );
-      }
-
-      const { client: db } = yield* Db;
-      const existing = yield* runDb(() =>
-        db.query.users
-          .findFirst({
-            where: eq(schema.users.email, email.toLowerCase()),
-          })
-          .sync(),
-      );
-      if (existing) {
-        return yield* HttpServerResponse.json(
-          { error: "ConflictError", message: "An account with this email already exists" },
-          { status: 409 },
-        );
-      }
-
-      const auth = yield* Auth;
-      const passwordHash = yield* auth.hashPassword(password);
-      const id = yield* crypto.generateId();
-      const now = Date.now();
-
-      yield* runDb(() =>
-        db
-          .insert(schema.users)
-          .values({
-            id,
-            name,
-            email: email.toLowerCase(),
-            passwordHash,
-            emailVerified: 0,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .run(),
-      );
-
-      const token = yield* auth.generateEmailVerificationToken(id);
-      const emailService = yield* Email;
-      const config = yield* AppConfig;
-      yield* emailService.sendVerificationEmail(email.toLowerCase(), token, config.baseUrl);
-
-      const sessionId = yield* auth.createSession(id);
-
-      const resp = yield* HttpServerResponse.json({
-        user: {
-          id,
-          name,
-          email: email.toLowerCase(),
-          emailVerified: false,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-      return setSessionCookie(resp, sessionId);
+const catchInfrastructureErrors = <A, R>(effect: Effect.Effect<A, AuthRouteError, R>) =>
+  effect.pipe(
+    Effect.catchTags({
+      CryptoError: (error) =>
+        Effect.fail(new InternalErrorResponse({ error: "InternalError", message: error.message })),
+      DatabaseError: (error) =>
+        Effect.fail(new InternalErrorResponse({ error: "InternalError", message: error.message })),
+      EmailApiError: (error) =>
+        Effect.fail(new InternalErrorResponse({ error: "InternalError", message: error.message })),
+      EmailNetworkError: (error) =>
+        Effect.fail(new InternalErrorResponse({ error: "InternalError", message: error.message })),
+      HttpBodyError: () =>
+        Effect.fail(
+          new InternalErrorResponse({
+            error: "InternalError",
+            message: "Failed to encode response",
+          }),
+        ),
+      UnauthorizedError: (error) =>
+        Effect.fail(
+          new UnauthorizedResponse({ error: "UnauthorizedError", message: error.message }),
+        ),
     }),
-  ),
-);
+  );
 
-const login = HttpRouter.add(
-  "POST",
-  "/api/auth/login",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as { email: string; password: string };
-      const { email, password } = body;
+/** Authentication endpoint implementations backed by the HttpApi contract. */
+export const authRoutes = HttpApiBuilder.group(Api, "Auth", (handlers) =>
+  handlers
+    .handle("signup", ({ payload }) =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const { name, email, password } = payload;
+          const normalizedEmail = email.toLowerCase();
+          const { client: db } = yield* Db;
+          const existing = yield* runDb(() =>
+            db.query.users
+              .findFirst({
+                where: eq(schema.users.email, normalizedEmail),
+              })
+              .sync(),
+          );
 
-      if (!email || !password) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Email and password are required" },
-          { status: 400 },
-        );
-      }
+          if (existing) {
+            return yield* Effect.fail(
+              new ConflictResponse({
+                error: "ConflictError",
+                message: "An account with this email already exists",
+              }),
+            );
+          }
 
-      const { client: db } = yield* Db;
-      const user = yield* runDb(() =>
-        db.query.users
-          .findFirst({
-            where: eq(schema.users.email, email.toLowerCase()),
-          })
-          .sync(),
-      );
-      if (!user) {
-        return yield* HttpServerResponse.json(
-          { error: "AuthError", message: "Invalid email or password" },
-          { status: 401 },
-        );
-      }
+          const auth = yield* Auth;
+          const passwordHash = yield* auth.hashPassword(password);
+          const id = yield* crypto.generateId();
+          const now = Date.now();
 
-      const auth = yield* Auth;
-      const valid = yield* auth.verifyPassword(password, user.passwordHash);
-      if (!valid) {
-        return yield* HttpServerResponse.json(
-          { error: "AuthError", message: "Invalid email or password" },
-          { status: 401 },
-        );
-      }
+          yield* runDb(() =>
+            db
+              .insert(schema.users)
+              .values({
+                id,
+                name,
+                email: normalizedEmail,
+                passwordHash,
+                emailVerified: 0,
+                createdAt: now,
+                updatedAt: now,
+              })
+              .run(),
+          );
 
-      const sessionId = yield* auth.createSession(user.id);
-      const resp = yield* HttpServerResponse.json({
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          emailVerified: !!user.emailVerified,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
-      });
-      return setSessionCookie(resp, sessionId);
-    }),
-  ),
-);
+          const token = yield* auth.generateEmailVerificationToken(id);
+          const emailService = yield* Email;
+          const config = yield* AppConfig;
+          yield* emailService.sendVerificationEmail(normalizedEmail, token, config.baseUrl);
 
-const logout = HttpRouter.add(
-  "POST",
-  "/api/auth/logout",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { session } = yield* requireAuth;
-      const auth = yield* Auth;
-      yield* auth.invalidateSession(session.id);
-      return clearSessionCookie(yield* HttpServerResponse.json({ success: true }));
-    }),
-  ),
-);
+          const sessionId = yield* auth.createSession(id);
+          const response = yield* HttpServerResponse.json({
+            user: {
+              id,
+              name,
+              email: normalizedEmail,
+              emailVerified: false,
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+          return setSessionCookie(response, sessionId);
+        }),
+      ),
+    )
+    .handle("login", ({ payload }) =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const { email, password } = payload;
+          const { client: db } = yield* Db;
+          const user = yield* runDb(() =>
+            db.query.users
+              .findFirst({
+                where: eq(schema.users.email, email.toLowerCase()),
+              })
+              .sync(),
+          );
 
-const me = HttpRouter.add(
-  "GET",
-  "/api/auth/me",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireAuth;
-      return yield* HttpServerResponse.json({
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          emailVerified: !!user.emailVerified,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
-      });
-    }),
-  ),
-);
+          if (!user) {
+            return yield* Effect.fail(
+              new UnauthorizedResponse({
+                error: "AuthError",
+                message: "Invalid email or password",
+              }),
+            );
+          }
 
-const verifyEmail = HttpRouter.add(
-  "POST",
-  "/api/auth/verify-email",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as { token: string };
-      const { token } = body;
+          const auth = yield* Auth;
+          const valid = yield* auth.verifyPassword(password, user.passwordHash);
+          if (!valid) {
+            return yield* Effect.fail(
+              new UnauthorizedResponse({
+                error: "AuthError",
+                message: "Invalid email or password",
+              }),
+            );
+          }
 
-      if (!token) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Token is required" },
-          { status: 400 },
-        );
-      }
+          const sessionId = yield* auth.createSession(user.id);
+          const response = yield* HttpServerResponse.json({
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              emailVerified: Boolean(user.emailVerified),
+              createdAt: user.createdAt,
+              updatedAt: user.updatedAt,
+            },
+          });
+          return setSessionCookie(response, sessionId);
+        }),
+      ),
+    )
+    .handle("logout", () =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const { session } = yield* requireAuth;
+          const auth = yield* Auth;
+          yield* auth.invalidateSession(session.id);
+          return clearSessionCookie(yield* HttpServerResponse.json({ success: true }));
+        }),
+      ),
+    )
+    .handle("me", () =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireAuth;
+          return {
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              emailVerified: Boolean(user.emailVerified),
+              createdAt: user.createdAt,
+              updatedAt: user.updatedAt,
+            },
+          };
+        }),
+      ),
+    )
+    .handle("verifyEmail", ({ payload }) =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const auth = yield* Auth;
+          const userId = yield* auth
+            .verifyEmailVerificationToken(payload.token)
+            .pipe(Effect.catchTag("AuthError", () => Effect.void));
 
-      const auth = yield* Auth;
-      const userId = yield* auth
-        .verifyEmailVerificationToken(token)
-        .pipe(Effect.catchTag("AuthError", () => Effect.succeed(null as string | null)));
+          if (!userId) {
+            return yield* Effect.fail(
+              new BadRequestResponse({
+                error: "AuthError",
+                message: "Invalid or expired verification token",
+              }),
+            );
+          }
 
-      if (!userId) {
-        return yield* HttpServerResponse.json(
-          { error: "AuthError", message: "Invalid or expired verification token" },
-          { status: 400 },
-        );
-      }
+          const { client: db } = yield* Db;
+          yield* runDb(() =>
+            db
+              .update(schema.users)
+              .set({ emailVerified: 1, updatedAt: Date.now() })
+              .where(eq(schema.users.id, userId))
+              .run(),
+          );
 
-      const { client: db } = yield* Db;
-      yield* runDb(() =>
-        db
-          .update(schema.users)
-          .set({ emailVerified: 1, updatedAt: Date.now() })
-          .where(eq(schema.users.id, userId))
-          .run(),
-      );
+          return { success: true };
+        }),
+      ),
+    )
+    .handle("resendVerification", () =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireAuth;
 
-      return yield* HttpServerResponse.json({ success: true });
-    }),
-  ),
-);
+          if (user.emailVerified) {
+            return yield* Effect.fail(
+              new ConflictResponse({
+                error: "ConflictError",
+                message: "Email already verified",
+              }),
+            );
+          }
 
-const resendVerification = HttpRouter.add(
-  "POST",
-  "/api/auth/resend-verification",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireAuth;
+          const auth = yield* Auth;
+          const token = yield* auth.generateEmailVerificationToken(user.id);
+          const emailService = yield* Email;
+          const config = yield* AppConfig;
+          yield* emailService.sendVerificationEmail(user.email, token, config.baseUrl);
 
-      if (user.emailVerified) {
-        return yield* HttpServerResponse.json(
-          { error: "ConflictError", message: "Email already verified" },
-          { status: 409 },
-        );
-      }
+          return { success: true };
+        }),
+      ),
+    )
+    .handle("forgotPassword", ({ payload }) =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const { client: db } = yield* Db;
+          const user = yield* runDb(() =>
+            db.query.users
+              .findFirst({
+                where: eq(schema.users.email, payload.email.toLowerCase()),
+              })
+              .sync(),
+          );
 
-      const auth = yield* Auth;
-      const token = yield* auth.generateEmailVerificationToken(user.id);
-      const emailService = yield* Email;
-      const config = yield* AppConfig;
-      yield* emailService.sendVerificationEmail(user.email, token, config.baseUrl);
+          if (user) {
+            const auth = yield* Auth;
+            const token = yield* auth.generatePasswordResetToken(user.id);
+            const emailService = yield* Email;
+            const config = yield* AppConfig;
+            yield* emailService.sendPasswordResetEmail(user.email, token, config.baseUrl);
+          }
 
-      return yield* HttpServerResponse.json({ success: true });
-    }),
-  ),
-);
+          return { success: true };
+        }),
+      ),
+    )
+    .handle("resetPassword", ({ payload }) =>
+      catchInfrastructureErrors(
+        Effect.gen(function* () {
+          const auth = yield* Auth;
+          const userId = yield* auth
+            .verifyPasswordResetToken(payload.token)
+            .pipe(Effect.catchTag("AuthError", () => Effect.void));
 
-const forgotPassword = HttpRouter.add(
-  "POST",
-  "/api/auth/forgot-password",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as { email: string };
-      const { email } = body;
+          if (!userId) {
+            return yield* Effect.fail(
+              new BadRequestResponse({
+                error: "AuthError",
+                message: "Invalid or expired reset token",
+              }),
+            );
+          }
 
-      if (!email) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Email is required" },
-          { status: 400 },
-        );
-      }
+          const passwordHash = yield* auth.hashPassword(payload.password);
+          const { client: db } = yield* Db;
+          yield* runDb(() =>
+            db
+              .update(schema.users)
+              .set({ passwordHash, updatedAt: Date.now() })
+              .where(eq(schema.users.id, userId))
+              .run(),
+          );
 
-      const { client: db } = yield* Db;
-      const user = yield* runDb(() =>
-        db.query.users
-          .findFirst({
-            where: eq(schema.users.email, email.toLowerCase()),
-          })
-          .sync(),
-      );
+          yield* auth.invalidateAllUserSessions(userId);
 
-      if (user) {
-        const auth = yield* Auth;
-        const token = yield* auth.generatePasswordResetToken(user.id);
-        const emailService = yield* Email;
-        const config = yield* AppConfig;
-        yield* emailService.sendPasswordResetEmail(user.email, token, config.baseUrl);
-      }
-
-      return yield* HttpServerResponse.json({ success: true });
-    }),
-  ),
-);
-
-const resetPassword = HttpRouter.add(
-  "POST",
-  "/api/auth/reset-password",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = (yield* request.json) as { token: string; password: string };
-      const { token, password } = body;
-
-      if (!token || !password) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Token and password are required" },
-          { status: 400 },
-        );
-      }
-      if (password.length < 8) {
-        return yield* HttpServerResponse.json(
-          { error: "ValidationError", message: "Password must be at least 8 characters" },
-          { status: 400 },
-        );
-      }
-
-      const auth = yield* Auth;
-      const userId = yield* auth
-        .verifyPasswordResetToken(token)
-        .pipe(Effect.catchTag("AuthError", () => Effect.succeed(null as string | null)));
-
-      if (!userId) {
-        return yield* HttpServerResponse.json(
-          { error: "AuthError", message: "Invalid or expired reset token" },
-          { status: 400 },
-        );
-      }
-
-      const passwordHash = yield* auth.hashPassword(password);
-      const { client: db } = yield* Db;
-      yield* runDb(() =>
-        db
-          .update(schema.users)
-          .set({ passwordHash, updatedAt: Date.now() })
-          .where(eq(schema.users.id, userId))
-          .run(),
-      );
-
-      yield* auth.invalidateAllUserSessions(userId);
-
-      return yield* HttpServerResponse.json({ success: true });
-    }),
-  ),
-);
-
-export const authRoutes = Layer.mergeAll(
-  signup,
-  login,
-  logout,
-  me,
-  verifyEmail,
-  resendVerification,
-  forgotPassword,
-  resetPassword,
+          return { success: true };
+        }),
+      ),
+    ),
 );

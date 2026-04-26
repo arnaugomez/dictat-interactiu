@@ -1,57 +1,58 @@
-import { api } from "./client";
+import { withClient } from "./client";
+import type { Effect } from "effect";
+import type {
+  ApiSuccessType,
+  ForgotPasswordRequestType,
+  LoginRequestType,
+  ResetPasswordRequestType,
+  SignupRequestType,
+  UserResponseType,
+  VerifyEmailRequestType,
+} from "@dictat/shared";
+import type { ApiError } from "./client";
 
-interface UserResponse {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  createdAt: number;
-  updatedAt: number;
+/** Logs a user in using the shared Auth.login endpoint contract. */
+export function login(params: LoginRequestType): Effect.Effect<UserResponseType, ApiError> {
+  return withClient((client) => client.Auth.login({ payload: params }));
 }
 
-interface AuthResponse {
-  user: UserResponse;
+/** Creates a new account using the shared Auth.signup endpoint contract. */
+export function signup(params: SignupRequestType): Effect.Effect<UserResponseType, ApiError> {
+  return withClient((client) => client.Auth.signup({ payload: params }));
 }
 
-interface SuccessResponse {
-  success: boolean;
+/** Logs the current user out using the shared Auth.logout endpoint contract. */
+export function logout(): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Auth.logout());
 }
 
-export function login(params: { email: string; password: string }): Promise<AuthResponse> {
-  return api.post<AuthResponse>("/auth/login", params);
+/** Loads the current user using the shared Auth.me endpoint contract. */
+export function getMe(): Effect.Effect<UserResponseType, ApiError> {
+  return withClient((client) => client.Auth.me());
 }
 
-export function signup(params: {
-  name: string;
-  email: string;
-  password: string;
-}): Promise<AuthResponse> {
-  return api.post<AuthResponse>("/auth/signup", params);
+/** Verifies an email address using the shared Auth.verifyEmail endpoint contract. */
+export function verifyEmail(
+  params: VerifyEmailRequestType,
+): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Auth.verifyEmail({ payload: params }));
 }
 
-export function logout(): Promise<SuccessResponse> {
-  return api.post<SuccessResponse>("/auth/logout");
+/** Resends the verification email using the shared Auth.resendVerification endpoint contract. */
+export function resendVerification(): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Auth.resendVerification());
 }
 
-export function getMe(): Promise<AuthResponse> {
-  return api.get<AuthResponse>("/auth/me");
+/** Requests a password-reset email using the shared Auth.forgotPassword endpoint contract. */
+export function forgotPassword(
+  params: ForgotPasswordRequestType,
+): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Auth.forgotPassword({ payload: params }));
 }
 
-export function verifyEmail(params: { token: string }): Promise<SuccessResponse> {
-  return api.post<SuccessResponse>("/auth/verify-email", params);
-}
-
-export function resendVerification(): Promise<SuccessResponse> {
-  return api.post<SuccessResponse>("/auth/resend-verification");
-}
-
-export function forgotPassword(params: { email: string }): Promise<SuccessResponse> {
-  return api.post<SuccessResponse>("/auth/forgot-password", params);
-}
-
-export function resetPassword(params: {
-  token: string;
-  password: string;
-}): Promise<SuccessResponse> {
-  return api.post<SuccessResponse>("/auth/reset-password", params);
+/** Resets a password using the shared Auth.resetPassword endpoint contract. */
+export function resetPassword(
+  params: ResetPasswordRequestType,
+): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Auth.resetPassword({ payload: params }));
 }

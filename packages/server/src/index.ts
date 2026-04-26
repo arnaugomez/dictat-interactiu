@@ -1,5 +1,6 @@
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
 import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
 import { Effect, Layer, Redacted } from "effect";
 import { makeDbLayer } from "./db/client.js";
 import { runMigrations } from "./db/migrate.js";
@@ -11,6 +12,7 @@ import { dictatRoutes } from "./routes/dictats.js";
 import { accountRoutes } from "./routes/account.js";
 import { healthRoutes } from "./routes/health.js";
 import { AppConfig, AppConfigLive } from "./config.js";
+import { Api } from "@dictat/shared";
 
 // Build config synchronously at startup for bootstrap decisions
 const config = Effect.runSync(
@@ -41,8 +43,29 @@ const optionsRoute = HttpRouter.add(
   ),
 );
 
+// CORS headers for every API response.
+const corsMiddleware = HttpRouter.use((router) =>
+  router.addGlobalMiddleware((effect) =>
+    effect.pipe(
+      Effect.map((response) =>
+        response.pipe(
+          HttpServerResponse.setHeaders({
+            "access-control-allow-origin": config.corsOrigin,
+            "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "access-control-allow-headers": "content-type",
+            "access-control-allow-credentials": "true",
+          }),
+        ),
+      ),
+    ),
+  ),
+);
+
 // All route layers combined
-const routes = Layer.mergeAll(authRoutes, dictatRoutes, accountRoutes, optionsRoute, healthRoutes);
+const apiRoutes = HttpApiBuilder.layer(Api).pipe(
+  Layer.provide(Layer.mergeAll(authRoutes, dictatRoutes, accountRoutes, healthRoutes)),
+);
+const routes = Layer.mergeAll(apiRoutes, optionsRoute, corsMiddleware);
 
 // Application
 const app = routes.pipe(HttpRouter.serve);

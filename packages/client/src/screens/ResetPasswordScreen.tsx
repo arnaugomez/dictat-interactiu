@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Effect } from "effect";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { FloatingDeco, Btn } from "../components/ui";
@@ -39,7 +40,7 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
 
     setLoading(true);
     try {
-      await resetPassword({ token, password: newPassword });
+      await Effect.runPromise(resetPassword({ token, password: newPassword }));
       setSuccess(true);
     } catch (err) {
       if (err instanceof Error) {

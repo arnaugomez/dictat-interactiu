@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Effect } from "effect";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
@@ -19,6 +20,19 @@ interface EditScreenProps {
   onDelete: (id: string) => void;
 }
 
+interface SavePatch {
+  /** Updated title to persist for the current dictat. */
+  title?: string;
+  /** Updated source text to persist for the current dictat. */
+  text?: string;
+  /** Updated rendering and exercise configuration to persist for the current dictat. */
+  config?: DictatConfig;
+  /** Updated hidden token positions to persist for the current dictat. */
+  hiddenIndices?: ReadonlyArray<number>;
+  /** Updated public-sharing state to persist for the current dictat. */
+  isPublic?: boolean;
+}
+
 export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: EditScreenProps) {
   const [dictat, setDictat] = useState<Dictat | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +51,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    getDictat(dictatId)
+    Effect.runPromise(getDictat(dictatId))
       .then(({ dictat: fetched }) => {
         setDictat(fetched);
         setSliderPct(fetched.config.hidePct || 100);
@@ -52,16 +66,10 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
   }, [dictatId]);
 
   const debouncedSave = useCallback(
-    (patch: {
-      title?: string;
-      text?: string;
-      config?: DictatConfig;
-      hiddenIndices?: number[];
-      isPublic?: boolean;
-    }) => {
+    (patch: SavePatch) => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        void updateDictat(dictatId, patch);
+        void Effect.runPromise(updateDictat(dictatId, patch));
       }, 500);
     },
     [dictatId],
@@ -153,7 +161,7 @@ export default function EditScreen({ dictatId, onBack, onPractice, onDelete }: E
         if (!prev) return prev;
         return { ...prev, isPublic };
       });
-      void updateDictat(dictatId, { isPublic });
+      void Effect.runPromise(updateDictat(dictatId, { isPublic }));
     },
     [dictatId],
   );

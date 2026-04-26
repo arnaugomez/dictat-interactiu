@@ -1,33 +1,28 @@
-import { api } from "./client";
+import { withClient } from "./client";
+import type { Effect } from "effect";
+import type {
+  ApiSuccessType,
+  ChangePasswordRequestType,
+  UpdateProfileRequestType,
+  UserResponseType,
+} from "@dictat/shared";
+import type { ApiError } from "./client";
 
-interface UserResponse {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  createdAt: number;
-  updatedAt: number;
+/** Updates the current user's profile using the shared Account.updateProfile endpoint contract. */
+export function updateProfile(
+  params: UpdateProfileRequestType,
+): Effect.Effect<UserResponseType, ApiError> {
+  return withClient((client) => client.Account.updateProfile({ payload: params }));
 }
 
-interface ProfileResponse {
-  user: UserResponse;
+/** Changes the current user's password using the shared Account.changePassword endpoint contract. */
+export function changePassword(
+  params: ChangePasswordRequestType,
+): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Account.changePassword({ payload: params }));
 }
 
-interface SuccessResponse {
-  success: boolean;
-}
-
-export function updateProfile(params: { name: string }): Promise<ProfileResponse> {
-  return api.put<ProfileResponse>("/account/profile", params);
-}
-
-export function changePassword(params: {
-  currentPassword: string;
-  newPassword: string;
-}): Promise<SuccessResponse> {
-  return api.put<SuccessResponse>("/account/password", params);
-}
-
-export function deleteAccount(): Promise<SuccessResponse> {
-  return api.del<SuccessResponse>("/account");
+/** Deletes the current user's account using the shared Account.deleteAccount endpoint contract. */
+export function deleteAccount(): Effect.Effect<ApiSuccessType, ApiError> {
+  return withClient((client) => client.Account.deleteAccount());
 }

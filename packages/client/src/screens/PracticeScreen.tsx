@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { Effect } from "effect";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
@@ -37,7 +38,7 @@ export default function PracticeScreen({ dictatId, onBack, mode = "owner" }: Pra
     setIsLoading(true);
     setError(null);
     const request = mode === "public" ? getPublicDictat(dictatId) : getDictat(dictatId);
-    request
+    Effect.runPromise(request)
       .then((response) => {
         const fetched = response.dictat;
         setDictat(fetched);

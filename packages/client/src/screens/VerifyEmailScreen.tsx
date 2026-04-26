@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Effect } from "effect";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { FloatingDeco, Btn } from "../components/ui";
@@ -26,7 +27,7 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
     const token = params.get("token");
     if (!token) return;
     setVerifying(true);
-    verifyEmail({ token })
+    Effect.runPromise(verifyEmail({ token }))
       .then(() => setVerified(true))
       .catch(() => setSendError("El token de verificació no és vàlid o ha caducat."))
       .finally(() => setVerifying(false));
@@ -44,7 +45,7 @@ export default function VerifyEmailScreen({ onLogout }: VerifyEmailScreenProps) 
     setSendSuccess(false);
     setSending(true);
     try {
-      await resendVerification();
+      await Effect.runPromise(resendVerification());
       setSendSuccess(true);
       setCooldown(COOLDOWN_SECONDS);
     } catch (err) {

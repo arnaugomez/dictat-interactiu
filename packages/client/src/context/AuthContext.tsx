@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { Effect } from "effect";
 import * as authApi from "../api/auth";
 
 interface User {
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const { user: fetchedUser } = await authApi.getMe();
+      const { user: fetchedUser } = await Effect.runPromise(authApi.getMe());
       setUser(fetchedUser);
     } catch {
       setUser(null);
@@ -42,18 +43,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refreshUser]);
 
   const login = useCallback(async (params: { email: string; password: string }) => {
-    const { user: loggedInUser } = await authApi.login(params);
+    const { user: loggedInUser } = await Effect.runPromise(authApi.login(params));
     setUser(loggedInUser);
   }, []);
 
   const signup = useCallback(async (params: { name: string; email: string; password: string }) => {
-    const { user: newUser } = await authApi.signup(params);
+    const { user: newUser } = await Effect.runPromise(authApi.signup(params));
     setUser(newUser);
   }, []);
 
   const logout = useCallback(async () => {
     try {
-      await authApi.logout();
+      await Effect.runPromise(authApi.logout());
     } catch {
       // Ignore logout errors
     }

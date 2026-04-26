@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Effect } from "effect";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
@@ -14,7 +15,7 @@ interface ListScreenProps {
 }
 
 export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListScreenProps) {
-  const [dictats, setDictats] = useState<Dictat[]>([]);
+  const [dictats, setDictats] = useState<ReadonlyArray<Dictat>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListSc
     setIsLoading(true);
     setError(null);
     try {
-      const { dictats: fetched } = await listDictats();
+      const { dictats: fetched } = await Effect.runPromise(listDictats());
       setDictats(fetched);
     } catch {
       setError("No s'han pogut carregar els dictats. Torna-ho a intentar.");
@@ -41,7 +42,7 @@ export default function ListScreen({ onBack, onEdit, onPractice, onNew }: ListSc
     const idToDelete = deleteId;
     setDeleteId(null);
     try {
-      await deleteDictat(idToDelete);
+      await Effect.runPromise(deleteDictat(idToDelete));
       await fetchDictats();
     } catch {
       setError("No s'ha pogut eliminar el dictat. Torna-ho a intentar.");

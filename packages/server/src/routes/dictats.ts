@@ -1,134 +1,122 @@
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/unstable/http";
-import { Effect, Layer } from "effect";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { Effect } from "effect";
+import {
+  Api,
+  ForbiddenResponse,
+  InternalErrorResponse,
+  NotFoundResponse,
+  UnauthorizedResponse,
+} from "@dictat/shared";
 import { DictatService } from "../services/Dictat.js";
-import { NotFoundError } from "../services/Auth.js";
 import { requireVerifiedAuth } from "../middleware/auth.js";
+import type { ForbiddenError, UnauthorizedError } from "../middleware/auth.js";
 import { Auth } from "../services/Auth.js";
-import { catchAuthErrors } from "../lib/errors.js";
-import { CreateDictatRequest, UpdateDictatRequest } from "@dictat/shared";
+import type { DatabaseError } from "../db/client.js";
+import type { AuthError, NotFoundError } from "../services/Auth.js";
 
-const requireParam = (params: Record<string, string | undefined>, name: string) =>
-  Effect.gen(function* () {
-    const value = params[name];
-    if (value === undefined) {
-      return yield* new NotFoundError({ message: `Missing parameter: ${name}` });
-    }
-    return value;
-  });
+/** Converts service and auth failures into typed API failures. */
+type DictatRouteError =
+  | AuthError
+  | DatabaseError
+  | ForbiddenError
+  | NotFoundError
+  | UnauthorizedError;
 
-const listDictats = HttpRouter.add(
-  "GET",
-  "/api/dictats",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireVerifiedAuth;
-      const dictatService = yield* DictatService;
-      const dictats = yield* dictatService.list(user.id);
-      return yield* HttpServerResponse.json({ dictats });
+const catchDictatErrors = <A, R>(effect: Effect.Effect<A, DictatRouteError, R>) =>
+  effect.pipe(
+    Effect.catchTags({
+      AuthError: (error) =>
+        Effect.fail(new UnauthorizedResponse({ error: "AuthError", message: error.message })),
+      DatabaseError: (error) =>
+        Effect.fail(new InternalErrorResponse({ error: "InternalError", message: error.message })),
+      ForbiddenError: (error) =>
+        Effect.fail(new ForbiddenResponse({ error: "ForbiddenError", message: error.message })),
+      NotFoundError: (error) =>
+        Effect.fail(new NotFoundResponse({ error: "NotFoundError", message: error.message })),
+      UnauthorizedError: (error) =>
+        Effect.fail(
+          new UnauthorizedResponse({ error: "UnauthorizedError", message: error.message }),
+        ),
     }),
-  ),
-);
+  );
 
-const getDictat = HttpRouter.add(
-  "GET",
-  "/api/dictats/:id",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireVerifiedAuth;
-      const params = yield* HttpRouter.params;
-      const id = yield* requireParam(params, "id");
-      const dictatService = yield* DictatService;
-      const dictat = yield* dictatService.getById(id, user.id);
-      return yield* HttpServerResponse.json({ dictat });
-    }),
-  ),
-);
-
-const getPublicDictat = HttpRouter.add(
-  "GET",
-  "/api/public/dictats/:id",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const params = yield* HttpRouter.params;
-      const id = yield* requireParam(params, "id");
-      const auth = yield* Auth;
-      const viewer = request.cookies["session"]
-        ? yield* auth.validateSession(request.cookies["session"]).pipe(
-            Effect.map(({ user }) => user.id),
-            Effect.catch(() => Effect.sync((): string | undefined => undefined)),
-          )
-        : undefined;
-      const dictatService = yield* DictatService;
-      const result = yield* dictatService.getPublicById(id, viewer);
-      return yield* HttpServerResponse.json(result);
-    }),
-  ),
-);
-
-const createDictat = HttpRouter.add(
-  "POST",
-  "/api/dictats",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireVerifiedAuth;
-      const body = yield* HttpServerRequest.schemaBodyJson(CreateDictatRequest);
-
-      const dictatService = yield* DictatService;
-      const dictat = yield* dictatService.create(user.id, {
-        text: body.text,
-        title: body.title,
-        config: body.config as any,
-        hiddenIndices: body.hiddenIndices,
-      });
-      return yield* HttpServerResponse.json({ dictat }, { status: 201 });
-    }),
-  ),
-);
-
-const updateDictat = HttpRouter.add(
-  "PUT",
-  "/api/dictats/:id",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireVerifiedAuth;
-      const params = yield* HttpRouter.params;
-      const id = yield* requireParam(params, "id");
-      const body = yield* HttpServerRequest.schemaBodyJson(UpdateDictatRequest);
-
-      const dictatService = yield* DictatService;
-      const dictat = yield* dictatService.update(id, user.id, {
-        title: body.title,
-        text: body.text,
-        config: body.config as any,
-        hiddenIndices: body.hiddenIndices,
-        isPublic: body.isPublic,
-      });
-      return yield* HttpServerResponse.json({ dictat });
-    }),
-  ),
-);
-
-const deleteDictat = HttpRouter.add(
-  "DELETE",
-  "/api/dictats/:id",
-  catchAuthErrors(
-    Effect.gen(function* () {
-      const { user } = yield* requireVerifiedAuth;
-      const params = yield* HttpRouter.params;
-      const id = yield* requireParam(params, "id");
-      const dictatService = yield* DictatService;
-      yield* dictatService.remove(id, user.id);
-      return yield* HttpServerResponse.json({ success: true });
-    }),
-  ),
-);
-
-export const dictatRoutes = Layer.mergeAll(
-  listDictats,
-  getDictat,
-  getPublicDictat,
-  createDictat,
-  updateDictat,
-  deleteDictat,
+/** Dictat endpoint implementations backed by the HttpApi contract. */
+export const dictatRoutes = HttpApiBuilder.group(Api, "Dictats", (handlers) =>
+  handlers
+    .handle("listDictats", () =>
+      catchDictatErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireVerifiedAuth;
+          const dictatService = yield* DictatService;
+          const dictats = yield* dictatService.list(user.id);
+          return { dictats };
+        }),
+      ),
+    )
+    .handle("getDictat", ({ params }) =>
+      catchDictatErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireVerifiedAuth;
+          const dictatService = yield* DictatService;
+          const dictat = yield* dictatService.getById(params.id, user.id);
+          return { dictat };
+        }),
+      ),
+    )
+    .handle("getPublicDictat", ({ params, request }) =>
+      catchDictatErrors(
+        Effect.gen(function* () {
+          const auth = yield* Auth;
+          const viewer = request.cookies["session"]
+            ? yield* auth.validateSession(request.cookies["session"]).pipe(
+                Effect.map(({ user }) => user.id),
+                Effect.catch(() => Effect.sync((): string | undefined => undefined)),
+              )
+            : undefined;
+          const dictatService = yield* DictatService;
+          return yield* dictatService.getPublicById(params.id, viewer);
+        }),
+      ),
+    )
+    .handle("createDictat", ({ payload }) =>
+      catchDictatErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireVerifiedAuth;
+          const dictatService = yield* DictatService;
+          const dictat = yield* dictatService.create(user.id, {
+            text: payload.text,
+            title: payload.title,
+            config: payload.config,
+            hiddenIndices: payload.hiddenIndices,
+          });
+          return { dictat };
+        }),
+      ),
+    )
+    .handle("updateDictat", ({ params, payload }) =>
+      catchDictatErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireVerifiedAuth;
+          const dictatService = yield* DictatService;
+          const dictat = yield* dictatService.update(params.id, user.id, {
+            title: payload.title,
+            text: payload.text,
+            config: payload.config,
+            hiddenIndices: payload.hiddenIndices,
+            isPublic: payload.isPublic,
+          });
+          return { dictat };
+        }),
+      ),
+    )
+    .handle("deleteDictat", ({ params }) =>
+      catchDictatErrors(
+        Effect.gen(function* () {
+          const { user } = yield* requireVerifiedAuth;
+          const dictatService = yield* DictatService;
+          yield* dictatService.remove(params.id, user.id);
+          return { success: true };
+        }),
+      ),
+    ),
 );

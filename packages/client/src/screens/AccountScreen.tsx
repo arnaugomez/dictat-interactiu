@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Effect } from "effect";
 import { C } from "../theme/colors";
 import { F } from "../theme/fonts";
 import { I } from "../components/Icons";
@@ -36,7 +37,7 @@ export default function AccountScreen({ onBack }: AccountScreenProps) {
     if (!name.trim()) return;
     setSavingName(true);
     try {
-      const result = await updateProfile({ name: name.trim() });
+      const result = await Effect.runPromise(updateProfile({ name: name.trim() }));
       setUser(result.user);
       setToast("Nom desat correctament.");
     } catch (err) {
@@ -66,7 +67,7 @@ export default function AccountScreen({ onBack }: AccountScreenProps) {
 
       setSavingPassword(true);
       try {
-        await changePassword({ currentPassword, newPassword });
+        await Effect.runPromise(changePassword({ currentPassword, newPassword }));
         setCurrentPassword("");
         setNewPassword("");
         setConfirmNewPassword("");
@@ -87,7 +88,7 @@ export default function AccountScreen({ onBack }: AccountScreenProps) {
   const handleDeleteAccount = useCallback(async () => {
     setDeletingAccount(true);
     try {
-      await deleteAccount();
+      await Effect.runPromise(deleteAccount());
       await logout();
     } catch {
       setToast("No s'ha pogut eliminar el compte. Torna-ho a intentar.");

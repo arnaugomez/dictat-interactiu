@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Effect } from "effect";
 import GlobalStyles from "./components/GlobalStyles";
 import HomeScreen from "./screens/HomeScreen";
 import ListScreen from "./screens/ListScreen";
@@ -114,15 +115,15 @@ export default function App() {
     createFromText: async (text: string) => {
       const tokens = tokenize(text);
       const hiddenIndices = computeHiddenIndices(tokens, 100);
-      const { dictat } = await createDictat({ text, hiddenIndices });
+      const { dictat } = await Effect.runPromise(createDictat({ text, hiddenIndices }));
       navigate(`/edit/${dictat.id}`);
     },
     createNew: async () => {
-      const { dictat } = await createDictat({ text: "" });
+      const { dictat } = await Effect.runPromise(createDictat({ text: "" }));
       navigate(`/edit/${dictat.id}`);
     },
     deleteDictat: async (id: string) => {
-      await deleteDictat(id);
+      await Effect.runPromise(deleteDictat(id));
       navigate("/list");
     },
   };

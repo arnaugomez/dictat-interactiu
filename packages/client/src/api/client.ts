@@ -1,74 +1,88 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Schema } from "effect";
 import {
-  HttpClient,
-  HttpClientResponse,
-  HttpBody,
-  FetchHttpClient,
-  HttpClientRequest,
-} from "effect/unstable/http";
+  Api,
+  BadRequestResponse,
+  ConflictResponse,
+  ForbiddenResponse,
+  InternalErrorResponse,
+  NotFoundResponse,
+  UnauthorizedResponse,
+} from "@dictat/shared";
+import { FetchHttpClient } from "effect/unstable/http";
+import { HttpApiClient, HttpApiError } from "effect/unstable/httpapi";
 
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
+/** Client-side API error produced by the Effect HTTP API client boundary. */
+export class ApiError extends Schema.TaggedErrorClass<ApiError>("ApiError")("ApiError", {
+  /** HTTP status associated with the failed request. */
+  status: Schema.Number,
+  /** Machine-readable error code from the response schema or transport error. */
+  code: Schema.String,
+  /** Human-readable message suitable for existing UI error displays. */
+  message: Schema.String,
+}) {}
 
-// Configure fetch with credentials
+/** Fetch configuration shared by every browser API request. */
 const FetchLayer = Layer.succeed(FetchHttpClient.RequestInit, {
   credentials: "include",
-} as RequestInit);
+} satisfies RequestInit);
 
-// Configure client to prepend /api to all URLs
-const ApiClientLayer = Layer.effect(
-  HttpClient.HttpClient,
-  Effect.gen(function* () {
-    const baseClient = yield* HttpClient.HttpClient;
-    return baseClient.pipe(HttpClient.mapRequest(HttpClientRequest.prependUrl("/api")));
-  }),
-);
+/** Effect client layer used to execute derived HttpApi client methods. */
+const ClientLive = FetchHttpClient.layer.pipe(Layer.provide(FetchLayer));
 
-const ClientLive = ApiClientLayer.pipe(
-  Layer.provide(FetchLayer),
-  Layer.provide(FetchHttpClient.layer),
-);
+/** Lazily derives the type-safe client from the shared HttpApi contract. */
+const clientEffect = HttpApiClient.make(Api);
 
-function runApiEffect<T>(
-  effect: Effect.Effect<HttpClientResponse.HttpClientResponse, unknown, HttpClient.HttpClient>,
-): Promise<T> {
-  return effect.pipe(
-    Effect.flatMap((response) => {
-      if (response.status >= 400) {
-        return Effect.flatMap(response.json, (body) => {
-          const err = body as { error?: string; message?: string };
-          return Effect.fail(
-            new ApiError(response.status, err?.error ?? "Error", err?.message ?? "Request failed"),
-          );
-        });
-      }
-      return response.json as Effect.Effect<T>;
-    }),
-    Effect.provide(ClientLive),
-    Effect.runPromise,
-  );
-}
+/** Client type generated from the shared HttpApi contract. */
+type ApiClient = Effect.Success<typeof clientEffect>;
 
-export const api = {
-  get: <T>(path: string): Promise<T> => runApiEffect<T>(HttpClient.get(path)),
-
-  post: <T>(path: string, body?: unknown): Promise<T> =>
-    runApiEffect<T>(
-      HttpClient.post(path, body !== undefined ? { body: HttpBody.jsonUnsafe(body) } : undefined),
-    ),
-
-  put: <T>(path: string, body?: unknown): Promise<T> =>
-    runApiEffect<T>(
-      HttpClient.put(path, body !== undefined ? { body: HttpBody.jsonUnsafe(body) } : undefined),
-    ),
-
-  del: <T>(path: string): Promise<T> => runApiEffect<T>(HttpClient.del(path)),
+/** Maps the shared error schema class to its HTTP status code. */
+const statusFromError = (error: unknown): number => {
+  if (error instanceof BadRequestResponse) return 400;
+  if (error instanceof UnauthorizedResponse) return 401;
+  if (error instanceof ForbiddenResponse) return 403;
+  if (error instanceof NotFoundResponse) return 404;
+  if (error instanceof ConflictResponse) return 409;
+  if (error instanceof InternalErrorResponse) return 500;
+  if (error instanceof HttpApiError.BadRequest) return 400;
+  return 500;
 };
+
+/** Reads a structured error code from an Effect HTTP API failure. */
+const codeFromError = (error: unknown): string => {
+  if (typeof error === "object" && error !== null && "error" in error) {
+    return String(error.error);
+  }
+  if (typeof error === "object" && error !== null && "_tag" in error) {
+    return String(error._tag);
+  }
+  return "Error";
+};
+
+/** Reads a displayable message from an Effect HTTP API failure. */
+const messageFromError = (error: unknown): string => {
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return String(error.message);
+  }
+  if (error instanceof Schema.SchemaError) {
+    return error.message;
+  }
+  return "Request failed";
+};
+
+/** Converts Effect HTTP API failures into the app's typed client API error. */
+const toApiError = (error: unknown): ApiError =>
+  new ApiError({
+    status: statusFromError(error),
+    code: codeFromError(error),
+    message: messageFromError(error),
+  });
+
+/** Builds an Effect operation against the derived shared HttpApi client. */
+export const withClient = <A, E>(
+  useClient: (client: ApiClient) => Effect.Effect<A, E>,
+): Effect.Effect<A, ApiError> =>
+  clientEffect.pipe(
+    Effect.flatMap(useClient),
+    Effect.mapError(toApiError),
+    Effect.provide(ClientLive),
+  );
