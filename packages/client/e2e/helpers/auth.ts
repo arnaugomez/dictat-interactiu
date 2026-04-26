@@ -34,6 +34,30 @@ export interface AuthParams {
   password: string;
 }
 
+function getPasswordResetToken(dbPath: string, email: string): string {
+  // Playwright runs this helper in Node, but the test DB uses Bun's sqlite driver.
+  // Run a tiny Bun script so the Bun-only "bun:sqlite" import stays out of Node.
+  const script = `
+    import { Database } from "bun:sqlite";
+
+    const db = new Database(process.argv[1]);
+    const row = db
+      .query("SELECT prt.id FROM password_reset_tokens prt JOIN users u ON prt.user_id = u.id WHERE u.email = ?")
+      .get(process.argv[2]);
+    db.close();
+
+    if (!row) {
+      process.exit(1);
+    }
+
+    console.log(JSON.stringify(row));
+  `;
+  const output = execFileSync("bun", ["--eval", script, dbPath, email], {
+    encoding: "utf8",
+  });
+  return (JSON.parse(output) as { id: string }).id;
+}
+
 export async function signupAndLogin(page: Page, params: AuthParams): Promise<void> {
   const { name = "Test User", email, password } = params;
 
@@ -129,4 +153,18 @@ export async function loginViaApi(
 
   // Reload to apply the cookie
   await page.reload();
+}
+
+export async function requestPasswordResetToken(email: string): Promise<string> {
+  const forgotRes = await fetch(`${SERVER_URL}/api/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!forgotRes.ok) {
+    throw new Error(`Forgot password failed: ${forgotRes.status} ${await forgotRes.text()}`);
+  }
+
+  return getPasswordResetToken(DB_PATH, email.toLowerCase());
 }

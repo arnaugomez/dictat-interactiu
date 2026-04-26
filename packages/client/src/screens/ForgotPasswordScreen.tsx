@@ -126,6 +126,7 @@ export default function ForgotPasswordScreen({ onNavigate }: ForgotPasswordScree
             >
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <label
+                  htmlFor="forgot-password-email"
                   style={{
                     fontFamily: F.body,
                     fontSize: 13,
@@ -136,6 +137,7 @@ export default function ForgotPasswordScreen({ onNavigate }: ForgotPasswordScree
                   Correu electrònic
                 </label>
                 <input
+                  id="forgot-password-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

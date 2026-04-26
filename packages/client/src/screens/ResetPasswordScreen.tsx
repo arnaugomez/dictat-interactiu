@@ -175,6 +175,7 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
               >
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label
+                    htmlFor="reset-password-new"
                     style={{
                       fontFamily: F.body,
                       fontSize: 13,
@@ -185,6 +186,7 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
                     Nova contrasenya
                   </label>
                   <PasswordInput
+                    id="reset-password-new"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -195,6 +197,7 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <label
+                    htmlFor="reset-password-confirm"
                     style={{
                       fontFamily: F.body,
                       fontSize: 13,
@@ -205,6 +208,7 @@ export default function ResetPasswordScreen({ onNavigate }: ResetPasswordScreenP
                     Confirma la nova contrasenya
                   </label>
                   <PasswordInput
+                    id="reset-password-confirm"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required

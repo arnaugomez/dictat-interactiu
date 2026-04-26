@@ -70,3 +70,19 @@ export async function installPrintCapture(page: Page): Promise<void> {
       }) as Window;
   });
 }
+
+/**
+ * Waits until the edit screen debounce has persisted a dictat update.
+ *
+ * @param page Playwright page where the edit action has just happened.
+ * @returns The successful update response.
+ */
+export async function waitForDictatUpdate(page: Page): Promise<void> {
+  await page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      /\/api\/dictats\/[^/]+$/.test(new URL(response.url()).pathname) &&
+      response.ok(),
+    { timeout: 10000 },
+  );
+}
